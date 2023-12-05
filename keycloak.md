@@ -6,6 +6,7 @@ As an option, you may have a [PostgreSQL instance](https://www.postgresql.org/do
 - a `keycloak` database with `keycloak` as owner
 
 ## 1. Server
+### 1.1. Install the server
 Download Keycloak [Distribution powered by Quarkus](https://www.keycloak.org/downloads) and unpack it.
 
 Edit `conf/keycloak.conf` (update the keystore settings and comment the DB part if you do not have a loclal Postgresql instance):
@@ -59,40 +60,47 @@ https-key-store-password=change-me
 https-port=8443
 ```
 
-Run the server with `bash bin/kc.sh` or `bin\kc.bat`
+Run the server with `bash bin/kc.sh start-dev` or `bin\kc.bat start-dev`
 
 Open [https://localhost:8443/realms/master](https://localhost:8443/realms/master) and create the `admin` account.
 
-## 2. Clients creation
+Define an admin account and connect
+
+### 1.2. Master realm setup
+Under `Real settings` -> `General`, enable `User-managed access`.
+
+Under `Real settings` -> `Login`, enable `User registraion`, `Forgot password`, `Remeber me`, `Login with email`, `Verify email`
+
+## 2. Realm roles
+- `KEYCLOAK_MAPPER`
+- `EGASTRO_REALM_MANAGER`
+- `EGASTRO_CLIENT`
+
+## 3. Clients creation
 **`Client authentication` should be enabled for all clients**. This is what makes clients *"private"* (with a secret).
 
 **`Direct access grants` should always be disabled**. This is Keycloak name for the `password` flow which was long deprecated and should be used under no condition.
 
-`Valid redirect URIs` are to be defined only for client configured with `authorization_code` flow (`Standard flow` in Keycloak UI). To be very strict when using only Spring OAuth2 clients, we can use `{client-scheme://client-host:client-port}/login/oauth2/code/{client-id}`, but on dev machines, `https://localhost:8080/*` is just fine (if the local network has a DNS, use the name of the machine instead of `localhost`, this will enable to use Keycloak from other devices during tests).
+`Valid redirect URIs` are to be defined only for client configured with `authorization_code` flow (`Standard flow` in Keycloak UI). To be very strict when using only Spring OAuth2 clients, we can use `{client-scheme://client-host:client-port}/login/oauth2/code/{client-id}`, but on dev machines, setting both `https://localhost:8080/*` and `http://localhost:8080/*` is just fine (if the local network has a DNS, use the name of the machine instead of `localhost`, this will enable to use Keycloak from other devices during tests).
 
 using `+` as value for `Valid post logout redirect URIs` and `Web origins` is just fine on dev machines.
 
-### 2.1. egastro-bff
+### 3.1. egastro-bff
 - `Client authentication` enabled
 - `Authentication flow` select only `Standard flow`
 - you may set your local (BFF `https://localhost:8080`) as `Root URL`
 - set `Valid redirect URIs`, `Valid post logout redirect URIs` and `Web origins`
 
-### 2.2. restaurants-employees-mapper
+### 3.2. restaurants-employees-mapper
 - `Client authentication` enabled
 - `Authentication flow` select only `Service accounts roles`
 - in `Service accounts roles`, click `Assign role` to grant `KEYCLOAK_MAPPER`
 
 
-### 2.3. egastro-admin-client
+### 3.3. egastro-admin-client
 - `Client authentication` enabled
 - `Authentication flow` select only `Service accounts roles`
 - in `Service accounts roles`, click `Assign role` to grant `query-realms` and `create-realm`
-
-## 3. Realm roles
-- `KEYCLOAK_MAPPER`
-- `EGASTRO_REALM_MANAGER`
-- `EGASTRO_CLIENT`
 
 ## 4. Identity providers
 The process is pretty simple: declare a client with `client_credentials` on the OpenID Provider you want to "Login with" and then report the `client-id` and `client-secret` into Keycloak administration console.
@@ -105,6 +113,8 @@ As `Authorized JavaScript origins`, add your Keycloak instance URI (with port: `
 As `Authorized redirect URIs`, set the authorized origin with `/auth/realms/quiz/broker/google/endpoint` as path.
 
 Report the `Client ID` and `Client secret` in Keycloak's `Identity providers` -> `google` section of the realm(s) you whish to add `Login with Google`
+
+Once the identity provider created, add `openid email profile` to `Advanced settings` -> `Scopes`
 
 ## 5. Mapper
 
