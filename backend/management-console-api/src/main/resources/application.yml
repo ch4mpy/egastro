@@ -1,0 +1,121 @@
+scheme: http
+keycloak-host: https://localhost:8443
+master-issuer: ${keycloak-host}/realms/master
+admin-client-secret: change-me
+
+server:
+  port: 7084
+  error:
+    include-message: always
+  shutdown: graceful
+  ssl:
+    enabled: false
+
+spring:
+  config:
+    import:
+    - optional:configtree:/workspace/config/
+    - optional:configtree:/workspace/secret/
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: jdbc:postgresql://localhost:5432/egastro
+    username: egastro
+    password: change-me
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  cloud:
+    openfeign:
+      client:
+        config:
+          keycloak-admin-realm:
+            url: ${keycloak-host}/admin/realms
+      oauth2:
+        enabled: true
+        clientRegistrationId: egastro-admin-client
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${master-issuer}
+        registration:
+          egastro-admin-client:
+            provider: keycloak
+            client-id: egastro-admin-client
+            client-secret: ${admin-client-secret}
+            authorization-grant-type: client_credentials
+            scope:
+            - openid
+            - offline_access
+
+com:
+  c4-soft:
+    springaddons:
+      oidc:
+        ops:
+        - iss: ${master-issuer}
+          username-claim: preferred_username
+          authorities:
+          - path: $.realm_access.roles
+        resourceserver:
+          permit-all:
+          - "/error"
+          - "/users/me"
+          - "/actuator/health/readiness"
+          - "/actuator/health/liveness"
+          - "/v3/api-docs/**"
+        
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    org:
+      springframework:
+        security: DEBUG
+        boot: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: h2
+  datasource:
+    url: jdbc:h2:mem:egastro
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    generate-ddl: true
+    hibernate:
+      ddl-auto: create-drop
+
+---
+server:
+  ssl:
+    enabled: true
+
+spring:
+  config:
+    activate:
+      on-profile: ssl
+
+scheme: https

@@ -1,0 +1,44 @@
+{
+  "properties": [
+    {
+      "name": "scheme",
+      "type": "java.lang.String",
+      "description": "Scheme used for this server"
+    },
+    {
+      "name": "keycloak-host",
+      "type": "java.net.URI",
+      "description": "Base URI for the authorization server"
+    },
+    {
+      "name": "master-issuer",
+      "type": "java.net.URI",
+      "description": "Value of the issuer claim in access tokens from the master realm"
+    },
+    {
+      "name": "bff-secret",
+      "type": "java.lang.String",
+      "description": "Secret for the OAuth2 client"
+    },
+    {
+      "name": "admin-client-secret",
+      "type": "java.lang.String",
+      "description": "Secret for the OAuth2 client"
+    },
+    {
+      "name": "gateway-uri",
+      "type": "java.net.URI",
+      "description": "Base URI for this server"
+    },
+    {
+      "name": "management-console-api-uri",
+      "type": "java.net.URI",
+      "description": "Base URI for management console API"
+    },
+    {
+      "name": "ui-host",
+      "type": "java.net.URI",
+      "description": "Base URI for the UI"
+    }
+  ]
+}

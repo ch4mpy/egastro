@@ -1,0 +1,160 @@
+scheme: http
+keycloak-host: https://localhost:8443
+master-issuer: ${keycloak-host}/realms/master
+bff-secret: change-me
+admin-client-secret: change-me
+
+gateway-uri: ${scheme}://localhost:${server.port}
+management-console-api-uri: ${scheme}://localhost:7084
+ui-host: http://localhost:4200
+
+server:
+  port: 8080
+  shutdown: graceful
+  ssl:
+    enabled: false
+
+spring:
+  config:
+    import:
+    - optional:configtree:/workspace/config/
+    - optional:configtree:/workspace/secret/
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${master-issuer}
+            user-name-attribute: preferred_username
+        registration:
+          egastro-bff:
+            provider: keycloak
+            client-id: egastro-bff
+            client-secret: ${bff-secret}
+            authorization-grant-type: authorization_code
+            scope:
+            - openid
+            - profile
+            - email
+            - offline_access
+          egastro-admin-client:
+            provider: keycloak
+            client-id: egastro-admin-client
+            client-secret: ${admin-client-secret}
+            authorization-grant-type: client_credentials
+            scope:
+            - openid
+            - offline_access
+  cloud:
+    gateway:
+      default-filters:
+      - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin Access-Control-Request-Method Access-Control-Request-Headers
+      routes:
+      # Redirection from / to /ui/
+      - id: home
+        uri: ${gateway-uri}
+        predicates:
+        - Path=/
+        filters:
+        - RedirectTo=301,${gateway-uri}/ui/
+      # Serve the Angular app through the gateway
+      - id: ui
+        uri: ${ui-host}
+        predicates:
+        - Path=/ui/**
+      # Access the API with BFF pattern
+      - id: bff
+        uri: ${management-console-api-uri}
+        predicates:
+        - Path=/bff/v1/**
+        filters:
+        - TokenRelay=
+        - SaveSession
+        - StripPrefix=2
+      # Cert-manager http01 challenge for SSL certificates on K8s
+      - id: letsencrypt
+        uri: https://cert-manager-webhook
+        predicates:
+        - Path=/.well-known/acme-challenge/**
+
+com:
+  c4-soft:
+    springaddons:
+      oidc:
+        # Global OAuth2 configuration
+        ops:
+        - iss: ${master-issuer}
+          username-claim: ${spring.security.oauth2.client.provider.oauth2.user-name-attribute}
+          authorities:
+          - path: $.realm_access.roles
+        client:
+          client-uri: ${gateway-uri}
+          security-matchers:
+          - /login/**
+          - /oauth2/**
+          - /logout
+          - /bff/**
+          permit-all:
+          - /login/**
+          - /oauth2/**
+          - /bff/**
+          csrf: cookie-accessible-from-js
+          post-login-redirect-path: /ui/
+          post-logout-redirect-path: /ui/
+          oauth2-redirections:
+            rp-initiated-logout: ACCEPTED
+          cors:
+          - allowed-origin-patterns: ${ui-host}
+        # OAuth2 resource server configuration
+        resourceserver:
+          permit-all:
+          - "/error"
+          - /login-options
+          - /ui/**
+          - /v3/api-docs/**
+          - /actuator/health/readiness
+          - /actuator/health/liveness
+          - /.well-known/**
+          cors:
+          - allowed-origin-patterns: ${ui-host}
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    org:
+      springframework:
+        security: TRACE
+        boot: INFO
+    
+---
+spring:
+  config:
+    activate:
+      on-profile: ssl
+  cloud:
+    gateway:
+      default-filters:
+      - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin Access-Control-Request-Method Access-Control-Request-Headers
+      - SecureHeaders
+server:
+  ssl:
+    enabled: true
+
+scheme: https
