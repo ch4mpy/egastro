@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,11 +13,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import de.egastro.training.oidc.EGastroAuthentication;
 import de.egastro.training.oidc.domain.persistence.RestaurantRepository;
 import de.egastro.training.oidc.dtos.restaurants.RestaurantIdDto;
 import de.egastro.training.oidc.dtos.users.UserEmployersDto;
 import de.egastro.training.oidc.dtos.users.UserResponseDto;
+import de.egastro.training.oidc.security.EGastroAuthentication;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
@@ -38,6 +39,7 @@ public class UsersController {
 	}
 
 	@GetMapping(path = "/{realm}/{username}/employers", produces = MediaType.APPLICATION_JSON_VALUE)
+	@PreAuthorize("hasAuthority('KEYCLOAK_MAPPER')")
 	@Transactional(readOnly = true)
 	public UserEmployersDto getUserEmployers(@PathVariable("realm") String realm, @PathVariable("username") String username) {
 		final var restaurants = restaurantRepo.findByIdRealmName(realm);

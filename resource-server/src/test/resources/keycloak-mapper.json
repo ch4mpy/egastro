@@ -1,0 +1,16 @@
+{
+  "iss": "https://localhost:8443/realms/master",
+  "sub": "ce5c348e-cde1-45ae-9a13-c33729efb6ed",
+  "realm_access": {
+    "roles": [
+      "default-roles-master",
+      "offline_access",
+      "uma_authorization",
+      "KEYCLOAK_MAPPER"
+    ]
+  },
+  "scope": "openid email profile offline_access",
+  "email_verified": false,
+  "preferred_username": "service-account-restaurants-employees-mapper",
+  "client_id": "restaurants-employees-mapper"
+}

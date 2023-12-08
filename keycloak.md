@@ -2,7 +2,7 @@
 As a prerequisite, you should have a [self-signed certificate](https://github.com/ch4mpy/self-signed-certificate-generation) available.
 
 As an option, you may have a [PostgreSQL instance](https://www.postgresql.org/download/) running with
-- a `keycloak` "login" (``keycloak` as name, a password set in `Definition` tab and `Can login` enabled in `Privileges` tab)
+- a `keycloak` "login" (`keycloak` as name, a password set in `Definition` tab and `Can login` enabled in `Privileges` tab)
 - a `keycloak` database with `keycloak` as owner
 
 ## 1. Server
@@ -81,14 +81,14 @@ Under `Real settings` -> `Login`, enable `User registraion`, `Forgot password`, 
 
 **`Direct access grants` should always be disabled**. This is Keycloak name for the `password` flow which was long deprecated and should be used under no condition.
 
-`Valid redirect URIs` are to be defined only for client configured with `authorization_code` flow (`Standard flow` in Keycloak UI). To be very strict when using only Spring OAuth2 clients, we can use `{client-scheme://client-host:client-port}/login/oauth2/code/{client-id}`, but on dev machines, setting both `https://localhost:8080/*` and `http://localhost:8080/*` is just fine (if the local network has a DNS, use the name of the machine instead of `localhost`, this will enable to use Keycloak from other devices during tests).
+`Valid redirect URIs` are to be defined only for client configured with `authorization_code` flow (`Standard flow` in Keycloak UI). To be very strict when using only Spring OAuth2 clients, we can use `{client-scheme://client-host:client-port}/login/oauth2/code/{client-registration-id}`, but on dev machines, setting both `https://localhost:7080/*` and `http://localhost:7080/*` is just fine (if the local network has a DNS, use the name of the machine instead of `localhost`, this will enable to use Keycloak from other devices during tests).
 
 using `+` as value for `Valid post logout redirect URIs` and `Web origins` is just fine on dev machines.
 
 ### 3.1. egastro-bff
 - `Client authentication` enabled
 - `Authentication flow` select only `Standard flow`
-- you may set your local (BFF `https://localhost:8080`) as `Root URL`
+- you may set your local (BFF `https://localhost:7080`) as `Root URL`
 - set `Valid redirect URIs`, `Valid post logout redirect URIs` and `Web origins`
 
 ### 3.2. restaurants-employees-mapper

@@ -11,6 +11,11 @@
       "description": "Base URI for the authorization server"
     },
     {
+      "name": "username-claim",
+      "type": "java.lang.String",
+      "description": "claim to use as username"
+    },
+    {
       "name": "master-issuer",
       "type": "java.net.URI",
       "description": "Value of the issuer claim in access tokens from the master realm"

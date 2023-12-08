@@ -1,15 +1,15 @@
 scheme: http
 keycloak-host: https://localhost:8443
+username-claim: preferred_username
 master-issuer: ${keycloak-host}/realms/master
 bff-secret: change-me
-admin-client-secret: change-me
 
 gateway-uri: ${scheme}://localhost:${server.port}
 management-console-api-uri: ${scheme}://localhost:7084
-ui-host: http://localhost:4200
+ui-host: http://localhost:3000
 
 server:
-  port: 8080
+  port: 7080
   shutdown: graceful
   ssl:
     enabled: false
@@ -27,7 +27,7 @@ spring:
         provider:
           keycloak:
             issuer-uri: ${master-issuer}
-            user-name-attribute: preferred_username
+            user-name-attribute: ${username-claim}
         registration:
           egastro-bff:
             provider: keycloak
@@ -39,18 +39,10 @@ spring:
             - profile
             - email
             - offline_access
-          egastro-admin-client:
-            provider: keycloak
-            client-id: egastro-admin-client
-            client-secret: ${admin-client-secret}
-            authorization-grant-type: client_credentials
-            scope:
-            - openid
-            - offline_access
   cloud:
     gateway:
       default-filters:
-      - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin Access-Control-Request-Method Access-Control-Request-Headers
+      - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       routes:
       # Redirection from / to /ui/
       - id: home
@@ -73,11 +65,13 @@ spring:
         - TokenRelay=
         - SaveSession
         - StripPrefix=2
-      # Cert-manager http01 challenge for SSL certificates on K8s
-      - id: letsencrypt
-        uri: https://cert-manager-webhook
+      # Access the API as an OAuth2 client (without the TokenRelay filter)
+      - id: bff
+        uri: ${management-console-api-uri}
         predicates:
-        - Path=/.well-known/acme-challenge/**
+        - Path=/direct/v1/**
+        filters:
+        - StripPrefix=2
 
 com:
   c4-soft:
@@ -85,20 +79,16 @@ com:
       oidc:
         # Global OAuth2 configuration
         ops:
-        - iss: ${master-issuer}
-          username-claim: ${spring.security.oauth2.client.provider.oauth2.user-name-attribute}
+        - iss: ${keycloak-host}
+          username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
+          - path: $.resource_access.observability.roles
         client:
           client-uri: ${gateway-uri}
           security-matchers:
-          - /login/**
-          - /oauth2/**
-          - /logout
           - /bff/**
           permit-all:
-          - /login/**
-          - /oauth2/**
           - /bff/**
           csrf: cookie-accessible-from-js
           post-login-redirect-path: /ui/
@@ -110,9 +100,10 @@ com:
         # OAuth2 resource server configuration
         resourceserver:
           permit-all:
-          - "/error"
+          - /error
           - /login-options
           - /ui/**
+          - /direct/**
           - /v3/api-docs/**
           - /actuator/health/readiness
           - /actuator/health/liveness
@@ -140,7 +131,7 @@ logging:
     root: INFO
     org:
       springframework:
-        security: TRACE
+        security: DEBUG
         boot: INFO
     
 ---
@@ -148,11 +139,6 @@ spring:
   config:
     activate:
       on-profile: ssl
-  cloud:
-    gateway:
-      default-filters:
-      - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin Access-Control-Request-Method Access-Control-Request-Headers
-      - SecureHeaders
 server:
   ssl:
     enabled: true

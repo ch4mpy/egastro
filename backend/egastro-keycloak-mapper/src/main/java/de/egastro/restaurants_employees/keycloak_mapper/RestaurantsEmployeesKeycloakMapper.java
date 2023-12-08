@@ -36,7 +36,7 @@ public class RestaurantsEmployeesKeycloakMapper extends AbstractOIDCProtocolMapp
 		property.setLabel("Resturants-employees API base URI");
 		property.setHelpText("Base URI for API exposing relations between users and restaurants");
 		property.setType(ProviderConfigProperty.STRING_TYPE);
-		property.setDefaultValue("https://localhost:8080/direct/v1/users");
+		property.setDefaultValue("https://localhost:7080/direct/v1/users");
 		configProperties.add(property);
 
 		property = new ProviderConfigProperty();

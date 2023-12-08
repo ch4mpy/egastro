@@ -1,5 +1,6 @@
 scheme: http
 keycloak-host: https://localhost:8443
+username-claim: preferred_username
 master-issuer: ${keycloak-host}/realms/master
 admin-client-secret: change-me
 
@@ -18,12 +19,7 @@ spring:
     - optional:configtree:/workspace/secret/
   lifecycle:
     timeout-per-shutdown-phase: 30s
-  datasource:
-    url: jdbc:postgresql://localhost:5432/egastro
-    username: egastro
-    password: change-me
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     generate-ddl: true
     hibernate:
       ddl-auto: update
@@ -58,8 +54,8 @@ com:
     springaddons:
       oidc:
         ops:
-        - iss: ${master-issuer}
-          username-claim: preferred_username
+        - iss: ${keycloak-host}
+          username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
         resourceserver:
@@ -99,14 +95,35 @@ spring:
     activate:
       on-profile: h2
   datasource:
+    driver-class-name: org.h2.Driver
     url: jdbc:h2:mem:egastro
     username: sa
     password: password
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    generate-ddl: true
     hibernate:
       ddl-auto: create-drop
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgresql
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/egastro
+    username: egastro
+    password: change-me
+
+---
+spring:
+  config:
+    activate:
+      on-profile: mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/egastro
+    username: egastro
+    password: change-me
 
 ---
 server:

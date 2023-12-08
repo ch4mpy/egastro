@@ -1,0 +1,33 @@
+{
+  "iss": "https://localhost:8443/realms/master",
+  "sub": "6ad085ab-3bab-46b4-990b-96200cfa9feb",
+  "realm_access": {
+    "roles": [
+      "default-roles-master",
+      "offline_access",
+      "uma_authorization"
+    ]
+  },
+  "resource_access": {
+    "account": {
+      "roles": [
+        "manage-account",
+        "manage-account-links",
+        "view-profile"
+      ]
+    }
+  },
+  "scope": "openid email profile offline_access",
+  "email_verified": true,
+  "name": "Thom Bach",
+  "preferred_username": "thom",
+  "given_name": "Thom",
+  "family_name": "Bach",
+  "email": "thom@sushibach.de",
+  "manages": [
+    42
+  ],
+  "worksAt": [
+    42
+  ]
+}

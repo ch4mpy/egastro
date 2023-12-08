@@ -1,0 +1,19 @@
+keycloak-host: https://localhost:8443
+
+server:
+  port: 7084
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak-host}/realms/master
+
+logging:
+  level:
+    root: INFO
+    org:
+      springframework:
+        security: DEBUG
+        boot: INFO

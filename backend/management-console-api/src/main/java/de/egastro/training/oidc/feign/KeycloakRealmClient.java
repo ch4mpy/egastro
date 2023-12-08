@@ -15,7 +15,7 @@ import de.egastro.training.oidc.dtos.keycloak.RealmRepresentation;
 import de.egastro.training.oidc.dtos.keycloak.RoleRepresentation;
 import de.egastro.training.oidc.dtos.keycloak.UserRepresentation;
 
-@FeignClient(name = "keycloak-admin-realm", url = "${spring.cloud.openfeign.client.config.keycloak-admin-realm.url}")
+@FeignClient(name = "keycloak-admin-realm")
 public interface KeycloakRealmClient {
 
 	@GetMapping

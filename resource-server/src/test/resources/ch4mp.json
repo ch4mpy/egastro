@@ -1,0 +1,29 @@
+{
+  "iss": "https://localhost:8443/realms/master",
+  "aud": "account",
+  "sub": "17245c56-34bb-4f8d-8db3-52d4747c915b",
+  "typ": "Bearer",
+  "realm_access": {
+    "roles": [
+      "default-roles-master",
+      "offline_access",
+      "uma_authorization"
+    ]
+  },
+  "resource_access": {
+    "account": {
+      "roles": [
+        "manage-account",
+        "manage-account-links",
+        "view-profile"
+      ]
+    }
+  },
+  "scope": "openid email profile offline_access",
+  "email_verified": true,
+  "name": "Jérôme Wacongne",
+  "preferred_username": "ch4mp",
+  "given_name": "Jérôme",
+  "family_name": "Wacongne",
+  "email": "ch4mp@c4-soft.com"
+}
