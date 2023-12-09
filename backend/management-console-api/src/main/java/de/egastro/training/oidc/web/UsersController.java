@@ -31,6 +31,7 @@ public class UsersController {
 	private final RestaurantRepository restaurantRepo;
 
 	@GetMapping(path = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
+	@PreAuthorize("permitAll()")
 	// this route should have permitAll() access policy (it returns ANONYMOUS to unauthorized requests)
 	@Transactional(readOnly = true)
 	public UserResponseDto getMe(Authentication auth) {

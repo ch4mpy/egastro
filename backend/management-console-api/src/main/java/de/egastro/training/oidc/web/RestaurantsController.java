@@ -57,6 +57,7 @@ public class RestaurantsController {
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional(readOnly = true)
+	@PreAuthorize("permitAll()")
 	public List<RestaurantOverviewDto> listRestaurants(@PathVariable("realmName") @NotEmpty String realmName) throws RestaurantNotFoundException {
 		final var restaurants = restaurantRepo.findByRealmName(realmName);
 		return restaurants.stream().map(RestaurantsController::toDto).toList();
@@ -64,6 +65,7 @@ public class RestaurantsController {
 
 	@PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
+	@PreAuthorize("hasAuthority('EGASTRO_RESTAURANT_MANAGER')")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created restaurant")),
@@ -93,7 +95,7 @@ public class RestaurantsController {
 	}
 
 	@GetMapping(path = "/{restaurantId}", produces = MediaType.APPLICATION_JSON_VALUE)
-	@PreAuthorize("hasAnyAuthority('EGASTRO_REALM_MANAGER', 'EGASTRO_CLIENT')")
+	@PreAuthorize("permitAll()")
 	@Transactional(readOnly = true)
 	@Operation(responses = { @ApiResponse(), @ApiResponse(responseCode = "404", description = "Restaurant not found") })
 	public RestaurantOverviewDto retrieveRestaurant(
@@ -107,7 +109,7 @@ public class RestaurantsController {
 	}
 
 	@PutMapping(path = "/{restaurantId}", consumes = MediaType.APPLICATION_JSON_VALUE)
-	@PreAuthorize("hasAnyAuthority('EGASTRO_REALM_MANAGER', 'EGASTRO_CLIENT')")
+	@PreAuthorize("hasAuthority('EGASTRO_REALM_MANAGER') || manages(#restaurant)")
 	@Transactional()
 	@Operation(
 			responses = {
@@ -152,6 +154,7 @@ public class RestaurantsController {
 
 	@DeleteMapping(path = "/{restaurantId}")
 	@Transactional()
+	@PreAuthorize("hasAuthority('EGASTRO_REALM_MANAGER') || manages(#restaurant)")
 	@Operation(responses = { @ApiResponse(responseCode = "201") })
 	public ResponseEntity<Void> deleteRestaurant(
 			@PathVariable("realmName") @NotEmpty String realmName,

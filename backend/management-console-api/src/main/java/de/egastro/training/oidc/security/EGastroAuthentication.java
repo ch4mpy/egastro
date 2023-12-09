@@ -25,11 +25,11 @@ public class EGastroAuthentication extends OAuthentication<OpenidClaimSet> {
 		return splits.length > 0 ? splits[splits.length - 1] : null;
 	}
 
-	public List<String> getManages() {
-		return this.getAttributes().getClaimAsStringList("manages");
+	public List<Long> getManages() {
+		return this.getAttributes().getClaim("manages");
 	}
 
-	public List<String> getWorksAt() {
-		return this.getAttributes().getClaimAsStringList("worksAt");
+	public List<Long> getWorksAt() {
+		return this.getAttributes().getClaim("worksAt");
 	}
 }

@@ -61,7 +61,8 @@ com:
         resourceserver:
           permit-all:
           - "/error"
-          - "/users/me"
+          - "/users/**"
+          - "/realms/**"
           - "/actuator/health/readiness"
           - "/actuator/health/liveness"
           - "/v3/api-docs/**"

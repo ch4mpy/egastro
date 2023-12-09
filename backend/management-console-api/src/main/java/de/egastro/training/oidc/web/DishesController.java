@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,6 +53,7 @@ public class DishesController {
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional(readOnly = true)
+	@PreAuthorize("permitAll()")
 	@Operation(responses = { @ApiResponse(headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created dish")) })
 	public List<DishResponseDto> listDishes(
 			@PathVariable("realmName") @NotEmpty String realmName,
@@ -65,6 +67,7 @@ public class DishesController {
 
 	@PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
+	@PreAuthorize("worksFor(#restaurant)")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created dish")),
@@ -95,6 +98,7 @@ public class DishesController {
 
 	@GetMapping(path = "/{dishId}", produces = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional(readOnly = true)
+	@PreAuthorize("permitAll()")
 	@Operation(
 			responses = {
 					@ApiResponse(headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created dish")),
@@ -112,6 +116,8 @@ public class DishesController {
 
 	@PutMapping(path = "/{dishId}", consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
+	@PreAuthorize("worksFor(#restaurantId)")
+	// @PreAuthorize("worksFor(#dish.restaurant)")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the updated dish")),
@@ -137,6 +143,8 @@ public class DishesController {
 
 	@DeleteMapping("/{dishId}")
 	@Transactional()
+	@PreAuthorize("worksFor(#restaurantId)")
+	// @PreAuthorize("worksFor(#dish.restaurant)")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", description = "Dish deletion accepted"),

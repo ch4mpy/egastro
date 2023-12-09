@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -60,6 +61,7 @@ public class OrdersController {
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional(readOnly = true)
+	@PreAuthorize("permitAll()")
 	@Operation(responses = { @ApiResponse(description = "Ok"), @ApiResponse(responseCode = "404", description = "Restaurant not found") })
 	public List<OrderResponseDto> listOrders(
 			@PathVariable("realmName") @NotEmpty String realmName,
@@ -73,6 +75,7 @@ public class OrdersController {
 
 	@PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
+	@PreAuthorize("isFrom(#realmName)")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created order")),
@@ -123,6 +126,7 @@ public class OrdersController {
 
 	@GetMapping(path = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional(readOnly = true)
+	@PreAuthorize("worksFor(#restaurantId) || hasPassed(#order)")
 	@Operation(
 			responses = {
 					@ApiResponse(headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the updated order")),
@@ -140,6 +144,7 @@ public class OrdersController {
 
 	@PutMapping(path = "/{orderId}", consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
+	@PreAuthorize("worksFor(#restaurantId) || hasPassed(#order)")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the updated order")),
@@ -169,6 +174,7 @@ public class OrdersController {
 
 	@DeleteMapping(path = "/{orderId}")
 	@Transactional()
+	@PreAuthorize("worksFor(#restaurantId) || hasPassed(#order)")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", description = "Deletion accepted"),
