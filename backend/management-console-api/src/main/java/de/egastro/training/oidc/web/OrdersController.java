@@ -26,7 +26,6 @@ import de.egastro.training.oidc.domain.Restaurant;
 import de.egastro.training.oidc.domain.persistence.DishRepository;
 import de.egastro.training.oidc.domain.persistence.InstantEpochSecondConverter;
 import de.egastro.training.oidc.domain.persistence.OrderRepository;
-import de.egastro.training.oidc.domain.persistence.RestaurantRepository;
 import de.egastro.training.oidc.domain.persistence.RestaurantRepository.RestaurantNotFoundException;
 import de.egastro.training.oidc.dtos.ErrorDto;
 import de.egastro.training.oidc.dtos.restaurants.OrderCreationDto;
@@ -43,15 +42,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/realms/{realmName}/restaurants/{restaurantName}/orders")
+@RequestMapping("/realms/{realmName}/restaurants/{restaurantId}/orders")
 @RequiredArgsConstructor
 @Tag(name = "Orders")
 public class OrdersController {
 
-	private final RestaurantRepository restaurantRepo;
 	private final OrderRepository orderRepo;
 	private final DishRepository dishRepo;
 
@@ -64,9 +63,11 @@ public class OrdersController {
 	@Operation(responses = { @ApiResponse(description = "Ok"), @ApiResponse(responseCode = "404", description = "Restaurant not found") })
 	public List<OrderResponseDto> listOrders(
 			@PathVariable("realmName") @NotEmpty String realmName,
-			@PathVariable("restaurantName") @NotEmpty String restaurantName)
+			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant)
 			throws RestaurantNotFoundException {
-		final var restaurant = restaurantRepo.getRestaurant(realmName, restaurantName);
+		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
+			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		}
 		return restaurant.getOrders().stream().map(OrdersController::toDto).toList();
 	}
 
@@ -89,15 +90,16 @@ public class OrdersController {
 							content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<OrderResponseDto> createOrder(
 			@PathVariable("realmName") @NotEmpty String realmName,
-			@PathVariable("restaurantName") @NotEmpty String restaurantName,
+			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant,
 			@RequestBody @Valid OrderCreationDto dto)
 			throws RestaurantNotFoundException,
 			DishesFromAnotherRestaurantException {
-		final var restaurant = restaurantRepo.getRestaurant(realmName, restaurantName);
+		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
+			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		}
 		final var orderedDishesIds = dto.lines().stream().map(OrderLineUpdateDto::dishId).toList();
 		final var orderedDishes = dishRepo.findAllById(orderedDishesIds);
-		final var restaurantId = new Restaurant.RestaurantId(realmName, restaurantName);
-		if (orderedDishes.stream().anyMatch(d -> !Objects.equals(restaurantId, d.getRestaurant().getId()))) {
+		if (orderedDishes.stream().anyMatch(d -> !Objects.equals(restaurant.getId(), d.getRestaurant().getId()))) {
 			throw new DishesFromAnotherRestaurantException();
 		}
 		final var order = new Order(restaurant, dto.customer(), List.of(), Instant.now(), Instant.ofEpochSecond(dto.askedFor()));
@@ -106,7 +108,7 @@ public class OrdersController {
 					.stream()
 					.filter(d -> d.getId().equals(lineDto.dishId()))
 					.findAny()
-					.orElseThrow(() -> new DishNotFoundException(lineDto.dishId(), restaurantName, realmName));
+					.orElseThrow(() -> new DishNotFoundException(lineDto.dishId(), restaurant.getName(), realmName));
 			final var line = new OrderLine(new OrderLine.OrderLineId(order, dish), lineDto.quantity());
 			return line;
 		}).toList();
@@ -115,7 +117,7 @@ public class OrdersController {
 		final var saved = orderRepo.save(order);
 		return ResponseEntity
 				.accepted()
-				.location(URI.create("/realms/%s/restaurants/%s/orders/%d".formatted(realmName, restaurantName, saved.getId())))
+				.location(URI.create("/realms/%s/restaurants/%d/orders/%d".formatted(realmName, restaurant.getId(), saved.getId())))
 				.body(toDto(saved));
 	}
 
@@ -127,11 +129,11 @@ public class OrdersController {
 					@ApiResponse(responseCode = "404", description = "Order not found") })
 	public OrderResponseDto retrieveOrder(
 			@PathVariable("realmName") @NotEmpty String realmName,
-			@PathVariable("restaurantName") @NotEmpty String restaurantName,
+			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("orderId") @Parameter(schema = @Schema(type = "integer")) Order order)
 			throws OrderNotFoundException {
-		if (!Objects.equals(order.getRestaurant().getId(), new Restaurant.RestaurantId(realmName, restaurantName))) {
-			throw new OrderNotFoundException(order.getId(), restaurantName, realmName);
+		if (!Objects.equals(order.getRestaurant().getId(), restaurantId)) {
+			throw new OrderNotFoundException(order.getId(), restaurantId, realmName);
 		}
 		return toDto(order);
 	}
@@ -151,21 +153,18 @@ public class OrdersController {
 							content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<Void> updateOrder(
 			@PathVariable("realmName") @NotEmpty String realmName,
-			@PathVariable("restaurantName") @NotEmpty String restaurantName,
+			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("orderId") @Parameter(schema = @Schema(type = "integer")) Order order,
 			@RequestBody @Valid OrderUpdateDto dto)
 			throws OrderNotFoundException {
-		if (!Objects.equals(order.getRestaurant().getId(), new Restaurant.RestaurantId(realmName, restaurantName))) {
-			throw new OrderNotFoundException(order.getId(), restaurantName, realmName);
+		if (!Objects.equals(order.getRestaurant().getId(), restaurantId)) {
+			throw new OrderNotFoundException(order.getId(), restaurantId, realmName);
 		}
 		order.setEngagedFor(InstantEpochSecondConverter.toInstant(dto.engagedFor()));
 		order.setReadyAt(InstantEpochSecondConverter.toInstant(dto.readyAt()));
 		order.setPickedAt(InstantEpochSecondConverter.toInstant(dto.pickedAt()));
 		final var saved = orderRepo.save(order);
-		return ResponseEntity
-				.accepted()
-				.location(URI.create("/realms/%s/restaurants/%s/orders/%d".formatted(realmName, restaurantName, saved.getId())))
-				.build();
+		return ResponseEntity.accepted().location(URI.create("/realms/%s/restaurants/%d/orders/%d".formatted(realmName, restaurantId, saved.getId()))).build();
 	}
 
 	@DeleteMapping(path = "/{orderId}")
@@ -179,11 +178,11 @@ public class OrdersController {
 							content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<Void> deleteOrder(
 			@PathVariable("realmName") @NotEmpty String realmName,
-			@PathVariable("restaurantName") @NotEmpty String restaurantName,
+			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("orderId") @Parameter(schema = @Schema(type = "integer")) Order order)
 			throws OrderNotFoundException {
-		if (!Objects.equals(order.getRestaurant().getId(), new Restaurant.RestaurantId(realmName, restaurantName))) {
-			throw new OrderNotFoundException(order.getId(), restaurantName, realmName);
+		if (!Objects.equals(order.getRestaurant().getId(), restaurantId)) {
+			throw new OrderNotFoundException(order.getId(), restaurantId, realmName);
 		}
 		order.getRestaurant().getOrders().remove(order);
 		orderRepo.delete(order);
@@ -227,8 +226,8 @@ public class OrdersController {
 	static class OrderNotFoundException extends RuntimeException {
 		private static final long serialVersionUID = 4211451914083237049L;
 
-		public OrderNotFoundException(Long id, String name, String realm) {
-			super("No order with ID %d in restaurant named %s from realm %s".formatted(id, name, realm));
+		public OrderNotFoundException(Long id, Long restaurantId, String realm) {
+			super("No order with ID %d in restaurant %d from realm %s".formatted(id, restaurantId, realm));
 		}
 	}
 

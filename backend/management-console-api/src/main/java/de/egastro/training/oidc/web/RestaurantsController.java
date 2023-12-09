@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import de.egastro.training.oidc.domain.Restaurant;
-import de.egastro.training.oidc.domain.Restaurant.RestaurantId;
 import de.egastro.training.oidc.domain.persistence.RestaurantRepository;
 import de.egastro.training.oidc.domain.persistence.RestaurantRepository.RestaurantNotFoundException;
 import de.egastro.training.oidc.dtos.ErrorDto;
@@ -33,6 +32,7 @@ import de.egastro.training.oidc.dtos.restaurants.RestaurantOverviewDto;
 import de.egastro.training.oidc.dtos.restaurants.RestaurantUpdateDto;
 import de.egastro.training.oidc.feign.KeycloakRealmClient;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -58,7 +58,7 @@ public class RestaurantsController {
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional(readOnly = true)
 	public List<RestaurantOverviewDto> listRestaurants(@PathVariable("realmName") @NotEmpty String realmName) throws RestaurantNotFoundException {
-		final var restaurants = restaurantRepo.findByIdRealmName(realmName);
+		final var restaurants = restaurantRepo.findByRealmName(realmName);
 		return restaurants.stream().map(RestaurantsController::toDto).toList();
 	}
 
@@ -83,31 +83,30 @@ public class RestaurantsController {
 			@RequestBody @Valid RestaurantCreationDto dto)
 			throws RestaurantWithSameNameAlreadyExistsException,
 			UserWithSameNameButDifferentEmailAlreadyExistsException {
-		if (restaurantRepo.findById(new RestaurantId(realmName, dto.name())).isPresent()) {
+		if (restaurantRepo.findByRealmNameAndName(realmName, dto.name()).isPresent()) {
 			throw new RestaurantWithSameNameAlreadyExistsException(dto.name(), realmName);
 		}
 		final var manager = getOrCreateUser(realmName, dto.managerName(), dto.managerEmail());
 		final var restaurant = restaurantRepo.save(new Restaurant(realmName, dto.name(), List.of(manager.username())));
 
-		return ResponseEntity
-				.accepted()
-				.location(URI.create("/realms/%s/restaurants/%s".formatted(realmName, restaurant.getId().getName())))
-				.body(toDto(restaurant));
+		return ResponseEntity.accepted().location(URI.create("/realms/%s/restaurants/%d".formatted(realmName, restaurant.getId()))).body(toDto(restaurant));
 	}
 
-	@GetMapping(path = "/{restaurantName}", produces = MediaType.APPLICATION_JSON_VALUE)
+	@GetMapping(path = "/{restaurantId}", produces = MediaType.APPLICATION_JSON_VALUE)
 	@PreAuthorize("hasAnyAuthority('EGASTRO_REALM_MANAGER', 'EGASTRO_CLIENT')")
 	@Transactional(readOnly = true)
 	@Operation(responses = { @ApiResponse(), @ApiResponse(responseCode = "404", description = "Restaurant not found") })
 	public RestaurantOverviewDto retrieveRestaurant(
 			@PathVariable("realmName") @NotEmpty String realmName,
-			@PathVariable("restaurantName") @NotEmpty String restaurantName)
+			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant)
 			throws RestaurantNotFoundException {
-		final var restaurant = restaurantRepo.getRestaurant(realmName, restaurantName);
+		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
+			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		}
 		return toDto(restaurant);
 	}
 
-	@PutMapping(path = "/{restaurantName}", consumes = MediaType.APPLICATION_JSON_VALUE)
+	@PutMapping(path = "/{restaurantId}", consumes = MediaType.APPLICATION_JSON_VALUE)
 	@PreAuthorize("hasAnyAuthority('EGASTRO_REALM_MANAGER', 'EGASTRO_CLIENT')")
 	@Transactional()
 	@Operation(
@@ -124,14 +123,16 @@ public class RestaurantsController {
 					@ApiResponse(responseCode = "404", description = "User not found", content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<Void> updateRestaurant(
 			@PathVariable("realmName") @NotEmpty String realmName,
-			@PathVariable("restaurantName") @NotEmpty String restaurantName,
+			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant,
 			@RequestBody @Valid RestaurantUpdateDto dto)
 			throws RestaurantNotFoundException,
 			UserNotFoundException {
-		final var restaurant = restaurantRepo.getRestaurant(realmName, restaurantName);
+		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
+			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		}
 		if (!restaurant.getManagers().contains(dto.managerName())) {
 			if (!userExists(realmName, dto.managerName())) {
-				throw new UserNotFoundException(restaurantName, realmName);
+				throw new UserNotFoundException(dto.managerName(), realmName);
 			}
 			restaurant.getManagers().add(dto.managerName());
 		}
@@ -146,16 +147,19 @@ public class RestaurantsController {
 			}
 		}
 
-		return ResponseEntity.accepted().location(URI.create("/realms/%s/restaurants/%s".formatted(realmName, restaurant.getId().getName()))).build();
+		return ResponseEntity.accepted().location(URI.create("/realms/%s/restaurants/%d".formatted(realmName, restaurant.getId()))).build();
 	}
 
-	@DeleteMapping(path = "/{restaurantName}")
+	@DeleteMapping(path = "/{restaurantId}")
 	@Transactional()
 	@Operation(responses = { @ApiResponse(responseCode = "201") })
 	public ResponseEntity<Void> deleteRestaurant(
 			@PathVariable("realmName") @NotEmpty String realmName,
-			@PathVariable("restaurantName") @NotEmpty String restaurantName) {
-		restaurantRepo.deleteById(new RestaurantId(realmName, restaurantName));
+			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant) {
+		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
+			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		}
+		restaurantRepo.delete(restaurant);
 		return ResponseEntity.accepted().build();
 	}
 
@@ -205,8 +209,9 @@ public class RestaurantsController {
 
 	static RestaurantOverviewDto toDto(Restaurant restaurant) {
 		return new RestaurantOverviewDto(
-				restaurant.getId().getRealmName(),
-				restaurant.getId().getName(),
+				restaurant.getId(),
+				restaurant.getRealmName(),
+				restaurant.getName(),
 				new ArrayList<>(restaurant.getManagers()),
 				new ArrayList<>(restaurant.getEmployees()));
 	}

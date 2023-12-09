@@ -533,8 +533,8 @@ static class RestaurantRepository implements Converter<String, Restaurant> {
     private long sequence = 0L;
 
     public RestaurantRepository() {
-        final var sushiBar = new Restaurant(42L, "Sushi Bach", List.of("thom"), new ArrayList<>());
-        this.data.put(sushiBar.getId(), sushiBar);
+        final var sushibach = new Restaurant(42L, "Sushi Bach", List.of("thom"), new ArrayList<>());
+        this.data.put(sushibach.getId(), sushibach);
     }
 
     public Restaurant save(Restaurant restaurant) {
@@ -628,7 +628,7 @@ Note how we used the `authentication` "magic" variable as well as controller met
 
 #### <a name="access-control-security-expressions-with-parameters-tests"/>4.2.3. Unit tests
 
-We'll first need a new persona for our test (someone who does not work at Sushi Bar). Let's define `src/test/resources/ch4mp.json`:
+We'll first need a new persona for our test (someone who does not work at Sushi Bach). Let's define `src/test/resources/ch4mp.json`:
 
 ```json
 {
@@ -665,13 +665,13 @@ MealRepository mealRepo;
 
 final ObjectMapper om = new ObjectMapper();
 
-static final Restaurant sushiBar = new Restaurant(42L, "Sushi Bach", List.of("thom"), new ArrayList<>());
+static final Restaurant sushibach = new Restaurant(42L, "Sushi Bach", List.of("thom"), new ArrayList<>());
 static final Meal ch4mpMeal = new Meal("ch4mp");
 static final Meal tontonPirateMeal = new Meal("tonton-pirate");
 
 @BeforeEach
 public void setup() {
-    when(restaurantRepo.convert(sushiBar.getId().toString())).thenReturn(sushiBar);
+    when(restaurantRepo.convert(sushibach.getId().toString())).thenReturn(sushibach);
     when(mealRepo.convert("1")).thenReturn(ch4mpMeal);
     when(mealRepo.convert("2")).thenReturn(tontonPirateMeal);
 }

@@ -15,8 +15,8 @@ import org.springframework.stereotype.Repository;
 	private long sequence = 0L;
 
 	public RestaurantRepository() {
-		final var sushiBar = new Restaurant(42L, "Sushi Bach", List.of("thom"), new ArrayList<>());
-		this.data.put(sushiBar.getId(), sushiBar);
+		final var sushibach = new Restaurant(42L, "Sushi Bach", List.of("thom"), new ArrayList<>());
+		this.data.put(sushibach.getId(), sushibach);
 	}
 
 	public Restaurant save(Restaurant restaurant) {

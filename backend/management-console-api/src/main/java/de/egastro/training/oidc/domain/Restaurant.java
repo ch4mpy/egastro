@@ -13,24 +13,32 @@ import de.egastro.training.oidc.domain.persistence.StringSetConverter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
-import jakarta.persistence.Embeddable;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity(name = "restaurants")
-@Table(name = "restaurants")
+@Table(name = "restaurants", uniqueConstraints = { @UniqueConstraint(columnNames = { "realm", "name" }) })
 @Data
 @NoArgsConstructor
 public class Restaurant implements Serializable {
 	private static final long serialVersionUID = -1107120581141810642L;
 
 	@Id
-	private RestaurantId id = new RestaurantId();
+	@GeneratedValue
+	private Long id;
+
+	@Column(name = "realm", nullable = false)
+	private String realmName;
+
+	@Column(nullable = false)
+	@Length(min = 1)
+	private String name;
 
 	@Column(nullable = false)
 	@Convert(converter = StringSetConverter.class)
@@ -47,23 +55,8 @@ public class Restaurant implements Serializable {
 	private List<Order> orders = new ArrayList<>();
 
 	public Restaurant(String realmName, String restaurantName, Collection<String> managersNames) {
-		this.id.setName(restaurantName);
-		this.id.setRealmName(realmName);
+		this.setName(restaurantName);
+		this.setRealmName(realmName);
 		this.managers = new HashSet<>(managersNames);
-	}
-
-	@Embeddable
-	@Data
-	@NoArgsConstructor
-	@AllArgsConstructor
-	public static class RestaurantId implements Serializable {
-		private static final long serialVersionUID = -3212906714945413560L;
-
-		@Column(name = "realm", nullable = false)
-		private String realmName;
-
-		@Column(nullable = false, unique = true)
-		@Length(min = 1)
-		private String name;
 	}
 }

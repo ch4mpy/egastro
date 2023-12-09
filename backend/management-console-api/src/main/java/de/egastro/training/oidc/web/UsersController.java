@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import de.egastro.training.oidc.domain.persistence.RestaurantRepository;
-import de.egastro.training.oidc.dtos.restaurants.RestaurantIdDto;
 import de.egastro.training.oidc.dtos.users.UserEmployersDto;
 import de.egastro.training.oidc.dtos.users.UserResponseDto;
 import de.egastro.training.oidc.security.EGastroAuthentication;
@@ -42,15 +41,15 @@ public class UsersController {
 	@PreAuthorize("hasAuthority('KEYCLOAK_MAPPER')")
 	@Transactional(readOnly = true)
 	public UserEmployersDto getUserEmployers(@PathVariable("realm") String realm, @PathVariable("username") String username) {
-		final var restaurants = restaurantRepo.findByIdRealmName(realm);
-		final var manages = new ArrayList<RestaurantIdDto>();
-		final var worksAt = new ArrayList<RestaurantIdDto>();
+		final var restaurants = restaurantRepo.findByRealmName(realm);
+		final var manages = new ArrayList<Long>();
+		final var worksAt = new ArrayList<Long>();
 		restaurants.stream().forEach(r -> {
 			if (r.getManagers().contains(username)) {
-				manages.add(new RestaurantIdDto(realm, r.getId().getName()));
+				manages.add(r.getId());
 			}
 			if (r.getEmployees().contains(username)) {
-				worksAt.add(new RestaurantIdDto(realm, r.getId().getName()));
+				worksAt.add(r.getId());
 			}
 		});
 		return new UserEmployersDto(manages, worksAt);

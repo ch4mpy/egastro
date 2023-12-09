@@ -36,13 +36,13 @@ class GreetControllerTest {
 
 	final ObjectMapper om = new ObjectMapper();
 
-	static final Restaurant sushiBar = new Restaurant(42L, "Sushi Bach", List.of("thom"), new ArrayList<>());
+	static final Restaurant sushibach = new Restaurant(42L, "Sushi Bach", List.of("thom"), new ArrayList<>());
 	static final Meal ch4mpMeal = new Meal("ch4mp");
 	static final Meal tontonPirateMeal = new Meal("tonton-pirate");
 
 	@BeforeEach
 	public void setup() {
-		when(restaurantRepo.convert(sushiBar.getId().toString())).thenReturn(sushiBar);
+		when(restaurantRepo.convert(sushibach.getId().toString())).thenReturn(sushibach);
 		when(mealRepo.convert("1")).thenReturn(ch4mpMeal);
 		when(mealRepo.convert("2")).thenReturn(tontonPirateMeal);
 	}
@@ -86,7 +86,7 @@ class GreetControllerTest {
 
 	@Test
 	@WithJwt("ch4mp.json")
-	void givenUserIsCh4mp_whenCreateMealHeAtSushibar_thenCreated() throws Exception {
+	void givenUserIsCh4mp_whenCreateMealHeAtsushibach_thenCreated() throws Exception {
 		api
 				.perform(
 						post("/restaurants/42/meals")
@@ -97,19 +97,19 @@ class GreetControllerTest {
 
 	@Test
 	@WithJwt("thom.json")
-	void givenUserIsThom_whenGetSushibarMealFromSomeoneElse_thenOk() throws Exception {
+	void givenUserIsThom_whenGetsushibachMealFromSomeoneElse_thenOk() throws Exception {
 		api.perform(get("/restaurants/42/meals/1")).andExpect(status().isOk());
 	}
 
 	@Test
 	@WithJwt("ch4mp.json")
-	void givenUserIsCh4mp_whenGetSushibarMealHeOrdered_thenOk() throws Exception {
+	void givenUserIsCh4mp_whenGetsushibachMealHeOrdered_thenOk() throws Exception {
 		api.perform(get("/restaurants/42/meals/1")).andExpect(status().isOk());
 	}
 
 	@Test
 	@WithJwt("ch4mp.json")
-	void givenUserIsCh4mp_whenGetSushibarMealFromSomeoneElse_thenForbidden() throws Exception {
+	void givenUserIsCh4mp_whenGetsushibachMealFromSomeoneElse_thenForbidden() throws Exception {
 		api.perform(get("/restaurants/42/meals/2")).andExpect(status().isForbidden());
 	}
 

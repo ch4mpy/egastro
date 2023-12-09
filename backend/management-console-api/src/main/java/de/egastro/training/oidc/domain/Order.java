@@ -9,6 +9,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinColumns;
@@ -25,6 +26,7 @@ import lombok.NoArgsConstructor;
 public class Order {
 
 	@Id
+	@GeneratedValue
 	private Long id;
 
 	@Column(nullable = false)
@@ -32,9 +34,8 @@ public class Order {
 
 	@ManyToOne(optional = false)
 	@JoinColumns({
-		@JoinColumn(name = "restaurant_realm", referencedColumnName = "realm", nullable = false, updatable = false),
-		@JoinColumn(name = "restaurant_name", referencedColumnName = "name", nullable = false, updatable = false)
-	})
+			@JoinColumn(name = "restaurant_realm", referencedColumnName = "realm", nullable = false, updatable = false),
+			@JoinColumn(name = "restaurant_name", referencedColumnName = "name", nullable = false, updatable = false) })
 	private Restaurant restaurant;
 
 	@OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "id.order")

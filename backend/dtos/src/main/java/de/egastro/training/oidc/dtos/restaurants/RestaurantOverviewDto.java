@@ -6,6 +6,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public record RestaurantOverviewDto(@NotNull String realmName, @NotNull String name, @NotNull List<String> managers, @NotNull List<String> employees) {
+public record RestaurantOverviewDto(
+		@NotNull Long id,
+		@NotNull String realmName,
+		@NotNull String name,
+		@NotNull List<String> managers,
+		@NotNull List<String> employees) {
 
 }

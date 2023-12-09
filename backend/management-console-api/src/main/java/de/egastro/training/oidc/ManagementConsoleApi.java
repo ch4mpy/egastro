@@ -24,9 +24,9 @@ public class ManagementConsoleApi {
 			realmService.createRealm("test", Optional.empty());
 		}
 
-		final var sushibar = restaurantRepo.findById(new Restaurant.RestaurantId("test", "sushibar"));
-		if (sushibar.isEmpty()) {
-			restaurantRepo.save(new Restaurant("test", "sushibar", List.of("ch4mp", "tonton-pirate")));
+		final var sushibach = restaurantRepo.findByRealmNameAndName("test", "sushibach");
+		if (sushibach.isEmpty()) {
+			restaurantRepo.save(new Restaurant("test", "sushibach", List.of("ch4mp", "tonton-pirate")));
 		}
 	}
 
