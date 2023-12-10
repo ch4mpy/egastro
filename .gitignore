@@ -26,3 +26,6 @@ replay_pid*
 
 # OpenAPI specs
 *.openapi.json
+
+# Eclipse DBeaver
+**/.dbeaver

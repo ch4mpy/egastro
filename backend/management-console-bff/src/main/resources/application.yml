@@ -6,7 +6,7 @@ bff-secret: change-me
 
 gateway-uri: ${scheme}://localhost:${server.port}
 management-console-api-uri: ${scheme}://localhost:7084
-ui-host: http://localhost:3000
+ui-host: https://localhost:4200
 
 server:
   port: 7080
@@ -65,13 +65,6 @@ spring:
         - TokenRelay=
         - SaveSession
         - StripPrefix=2
-      # Access the API as an OAuth2 client (without the TokenRelay filter)
-      - id: bff
-        uri: ${management-console-api-uri}
-        predicates:
-        - Path=/direct/v1/**
-        filters:
-        - StripPrefix=2
 
 com:
   c4-soft:
@@ -79,7 +72,7 @@ com:
       oidc:
         # Global OAuth2 configuration
         ops:
-        - iss: ${keycloak-host}
+        - iss: ${master-issuer}
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
@@ -88,8 +81,13 @@ com:
           client-uri: ${gateway-uri}
           security-matchers:
           - /bff/**
+          - /login/**
+          - /logout
+          - /oauth2/**
           permit-all:
           - /bff/**
+          - /login/**
+          - /oauth2/**
           csrf: cookie-accessible-from-js
           post-login-redirect-path: /ui/
           post-logout-redirect-path: /ui/
@@ -103,7 +101,6 @@ com:
           - /error
           - /login-options
           - /ui/**
-          - /direct/**
           - /v3/api-docs/**
           - /actuator/health/readiness
           - /actuator/health/liveness
