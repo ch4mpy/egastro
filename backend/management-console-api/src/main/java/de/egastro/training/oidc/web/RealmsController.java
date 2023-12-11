@@ -35,7 +35,7 @@ public class RealmsController {
 	private final KeycloakRealmService realmService;
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-	@PreAuthorize("hasAnyAuthority('EGASTRO_RESTAURANT_MANAGER', 'EGASTRO_CLIENT')")
+	@PreAuthorize("hasAnyAuthority('EGASTRO_RESTAURANT_MANAGER')")
 	@Transactional(readOnly = true)
 	public List<RealmResponseDto> listRealms() {
 		final var realms = realmService.getRealms();

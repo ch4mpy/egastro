@@ -147,9 +147,7 @@ In `RestaurantsEmployeesClient`:
 - complete the `getClientAccessToken` method
 
 ### 5.3. Packaging and deploying
-From the `egastro/backend` folder, run:
-- `bash mvnw install -pl dtos` 
-- `bash mvnw package -pl egastro-keycloak-mapper` to build the shaded jar
+From the `egastro/backend` folder, run `bash mvnw install` to build the all backend, and so the mapper shaded jar
 
 Copy the output (`egastro/backend/egastro-keycloak-mapper/target/egastro-keycloak-mapper-0.0.1-SNAPSHOT.jar`) to `keycloak-21.1.1/providers` and restart the server.
 

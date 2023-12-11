@@ -1252,21 +1252,60 @@ The expression root we used so far was already using spring-addons and the DSL i
 ```java
 final class EGastroMethodSecurityExpressionRoot extends C4MethodSecurityExpressionRoot {
 
-    public boolean is(String username) {
-        return Objects.equals(username, getAuthentication().getName());
-    }
+	public boolean is(String username) {
+		return Objects.equals(username, getAuthentication().getName());
+	}
 
-    public boolean worksFor(Restaurant restaurant) {
-        return restaurant.getEmployees().contains(getAuthentication().getName()) || restaurant.getManagers().contains(getAuthentication().getName());
-    }
+	public boolean worksFor(Restaurant restaurant) {
+		return restaurant.getEmployees().contains(getAuthentication().getName()) || restaurant.getManagers().contains(getAuthentication().getName());
+		/*
+		 * alternative impl:
+		 *
+		 * if(getAuthentication() instanceof EGastroAuthentication egauth) { return egauth.getWorksAt().contains(restaurant.getId()) ||
+		 * egauth.getManages().contains(restaurant.getId()); } return false;
+		 */
+	}
 
-    public boolean manages(Restaurant restaurant) {
-        return restaurant.getManagers().contains(getAuthentication().getName());
-    }
+	public boolean worksFor(Long restaurantId) {
+		if (getAuthentication() instanceof EGastroAuthentication egauth) {
+			return egauth.getWorksAt().contains(restaurantId) || egauth.getManages().contains(restaurantId);
+		}
+		return false;
+	}
 
-    public boolean hasPassed(Order order) {
-        return Objects.equals(order.getCustomerName(), getAuthentication().getName());
-    }
+	public boolean manages(Restaurant restaurant) {
+		return restaurant.getManagers().contains(getAuthentication().getName());
+		/*
+		 * alternative impl:
+		 *
+		 * if(getAuthentication() instanceof EGastroAuthentication egauth) { return egauth.getManages().contains(restaurant.getId()); } return false;
+		 */
+	}
+
+	public boolean manages(Long restaurantId) {
+		if (getAuthentication() instanceof EGastroAuthentication egauth) {
+			return egauth.getManages().contains(restaurantId);
+		}
+		return false;
+	}
+
+	public boolean hasPassed(Order order) {
+		return Objects.equals(order.getCustomerName(), getAuthentication().getName());
+	}
+
+	public boolean isFromMasterOr(String realm) {
+		if (getAuthentication() instanceof EGastroAuthentication egauth) {
+			return Objects.equals(realm, egauth.getRealm()) || Objects.equals("master", egauth.getRealm());
+		}
+		return false;
+	}
+
+	public boolean isFrom(String realm) {
+		if (getAuthentication() instanceof EGastroAuthentication egauth) {
+			return Objects.equals(realm, egauth.getRealm());
+		}
+		return false;
+	}
 }
 ```
 
@@ -1284,35 +1323,35 @@ All we need is defining:
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Bean
-    ConfigurableClaimSetAuthoritiesConverter authoritiesConverter(@Value("${keycloak-host}") URI keycloakHost, SpringAddonsOidcProperties addonsProperties) {
-        final var opProperties = addonsProperties.getOpProperties(keycloakHost.toString());
-        return new ConfigurableClaimSetAuthoritiesConverter(claims -> opProperties.getAuthorities());
-    }
+	@Bean
+	ConfigurableClaimSetAuthoritiesConverter authoritiesConverter(@Value("${keycloak-host}") URI keycloakHost, SpringAddonsOidcProperties addonsProperties) {
+		final var opProperties = addonsProperties.getOpProperties(keycloakHost.toString());
+		return new ConfigurableClaimSetAuthoritiesConverter(claims -> opProperties.getAuthorities());
+	}
 
-    @Bean
-    JwtAbstractAuthenticationTokenConverter authenticationFactory(
-            Converter<Map<String, Object>, Collection<? extends GrantedAuthority>> authoritiesConverter,
-            SpringAddonsOidcProperties addonsProperties) {
-        return jwt -> {
-            final var opProperties = addonsProperties.getOpProperties("egastro");
-            final var claims = new OpenidClaimSet(jwt.getClaims(), opProperties.getUsernameClaim());
-            return new EGastroAuthentication(claims, authoritiesConverter.convert(claims), jwt.getTokenValue());
-        };
-    }
+	@Bean
+	JwtAbstractAuthenticationTokenConverter authenticationFactory(
+			@Value("${keycloak-host}") URI keycloakHost,
+			Converter<Map<String, Object>, Collection<? extends GrantedAuthority>> authoritiesConverter,
+			SpringAddonsOidcProperties addonsProperties) {
+		return jwt -> {
+			final var opProperties = addonsProperties.getOpProperties(keycloakHost.toString());
+			final var claims = new OpenidClaimSet(jwt.getClaims(), opProperties.getUsernameClaim());
+			return new EGastroAuthentication(claims, authoritiesConverter.convert(claims), jwt.getTokenValue());
+		};
+	}
 
-    @Bean
-    AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver(
-            Converter<Jwt, AbstractAuthenticationToken> authenticationConverter,
-            SpringAddonsOidcProperties addonsProperties) {
-            final var opProperties = addonsProperties.getOpProperties("egastro");
-        return new JwtIssuerAuthenticationManagerResolver(new IssuerStartsWithAuthenticationManagerResolver(keycloakHost.toString(), authenticationConverter));
-    }
+	@Bean
+	AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver(
+			@Value("${keycloak-host}") URI keycloakHost,
+			Converter<Jwt, AbstractAuthenticationToken> authenticationConverter) {
+		return new JwtIssuerAuthenticationManagerResolver(new IssuerStartsWithAuthenticationManagerResolver(keycloakHost.toString(), authenticationConverter));
+	}
 
-    @Bean
-    MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
-        return new C4MethodSecurityExpressionHandler(EGastroMethodSecurityExpressionRoot::new);
-    }
+	@Bean
+	MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
+		return new C4MethodSecurityExpressionHandler(EGastroMethodSecurityExpressionRoot::new);
+	}
 }
 ```
 The `SecurityFilterChain` bean is provided by `spring-addons` starter and configured to use the beans we defined here instead of its defaults and the following properties:

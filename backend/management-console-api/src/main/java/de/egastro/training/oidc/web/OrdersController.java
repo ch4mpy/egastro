@@ -61,7 +61,7 @@ public class OrdersController {
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional(readOnly = true)
-	@PreAuthorize("permitAll()")
+	@PreAuthorize("worksFor(#restaurant)")
 	@Operation(responses = { @ApiResponse(description = "Ok"), @ApiResponse(responseCode = "404", description = "Restaurant not found") })
 	public List<OrderResponseDto> listOrders(
 			@PathVariable("realmName") @NotEmpty String realmName,

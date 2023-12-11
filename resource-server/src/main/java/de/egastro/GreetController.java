@@ -88,7 +88,7 @@ public class GreetController {
 	}
 
 	@GetMapping("/restaurants/{restaurantId}/meals/{mealId}")
-	@PreAuthorize("hasOrdered(#meal) || worksFor(#restaurant)")
+	@PreAuthorize("hasOrdered(#meal) or worksFor(#restaurant)")
 	public Meal retreiveMeal(@PathVariable("restaurantId") Restaurant restaurant, @PathVariable("mealId") Meal meal) {
 
 		return meal;

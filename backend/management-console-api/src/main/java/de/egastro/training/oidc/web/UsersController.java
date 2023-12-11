@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UsersController {
 
-	private static final UserResponseDto ANONYMOUS = new UserResponseDto("", "", "", List.of());
+	private static final UserResponseDto ANONYMOUS = new UserResponseDto("", "", "", List.of(), List.of(), List.of(), Long.MAX_VALUE);
 
 	private final RestaurantRepository restaurantRepo;
 
@@ -62,6 +62,6 @@ public class UsersController {
 		final var name = oauth2.getName();
 		final var email = oauth2.getAttributes().getEmail();
 		final var roles = oauth2.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
-		return new UserResponseDto(realm, name, email, roles);
+		return new UserResponseDto(realm, name, email, roles, oauth2.getManages(), oauth2.getWorksAt(), oauth2.getAttributes().getExpiresAt().getEpochSecond());
 	}
 }

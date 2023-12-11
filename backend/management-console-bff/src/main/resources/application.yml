@@ -76,7 +76,6 @@ com:
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
-          - path: $.resource_access.observability.roles
         client:
           client-uri: ${gateway-uri}
           security-matchers:
@@ -102,6 +101,7 @@ com:
           - /login-options
           - /ui/**
           - /v3/api-docs/**
+          - /swagger-ui/**
           - /actuator/health/readiness
           - /actuator/health/liveness
           - /.well-known/**
