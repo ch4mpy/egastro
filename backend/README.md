@@ -310,7 +310,7 @@ To populate the test security context with mocked `Authentication` instances, we
     <groupId>com.c4-soft.springaddons</groupId>
     <artifactId>spring-addons-oauth2-test</artifactId>
     <version>7.1.16</version>
-    <scope>test</test>
+    <scope>test</scope>
 </dependency>
 ```
 
