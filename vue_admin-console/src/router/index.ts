@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import RealmsListView from '../views/RealmsListView.vue'
+import RestaurantsListViewVue from '../views/RestaurantsListView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,7 +7,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: RealmsListView
+      component: RestaurantsListViewVue
     },
     {
       path: '/me',
@@ -17,7 +17,7 @@ const router = createRouter({
     {
       path: '/realms/:realm',
       name: 'realm-details',
-      component: () => import('../views/RealmDetailsView.vue')
+      component: () => import('../views/RestaurantDetailsView.vue')
     }
   ]
 })

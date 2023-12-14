@@ -3,6 +3,9 @@
 
 <template>
   <main>
-    <h1>{{ $route.params.realm }} realm</h1>
+    <h1>Restaurants</h1>
   </main>
 </template>
+
+<style>
+</style>

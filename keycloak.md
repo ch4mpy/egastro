@@ -1,4 +1,4 @@
-# Local Keycloak Setup
+# OIDC Training by Jérôme Wacongne: Local Keycloak Setup
 As a prerequisite, you should have a [self-signed certificate](https://github.com/ch4mpy/self-signed-certificate-generation) available.
 
 As an option, you may have a [PostgreSQL instance](https://www.postgresql.org/download/) running with
@@ -60,7 +60,7 @@ https-key-store-password=change-me
 https-port=8443
 ```
 
-Run the server with `bash bin/kc.sh start-dev` or `bin\kc.bat start-dev`
+Run the server with `bash bin/kc.sh start-dev` or `bin\kc.bat start-dev`. You might probably create a `keycloak.bat` (or `keycloak.sh`) to ease the startup from your desktop or anywhere you find convenient.  
 
 Open [https://localhost:8443/realms/master](https://localhost:8443/realms/master) and create the `admin` account.
 
@@ -81,14 +81,16 @@ Under `Real settings` -> `Login`, enable `User registraion`, `Forgot password`, 
 
 **`Direct access grants` should always be disabled**. This is Keycloak name for the `password` flow which was long deprecated and should be used under no condition.
 
-`Valid redirect URIs` are to be defined only for client configured with `authorization_code` flow (`Standard flow` in Keycloak UI). To be very strict when using only Spring OAuth2 clients, we can use `{client-scheme://client-host:client-port}/login/oauth2/code/{client-registration-id}`, but on dev machines, setting both `https://localhost:7080/*` and `http://localhost:7080/*` is just fine (if the local network has a DNS, use the name of the machine instead of `localhost`, this will enable to use Keycloak from other devices during tests).
+`Valid redirect URIs` are to be defined only for client configured with `authorization_code` flow (`Standard flow` in Keycloak UI). To be very strict when using only Spring OAuth2 clients, we can use `{client-scheme://client-host:client-port}/login/oauth2/code/{client-registration-id}`, but on dev machines, setting `*` as path is just fine.
+
+If the local network has a DNS, do not forget to set an entry with the name of the machine, this will prove to be very useful when debugging Flutter application on real mobile devices.
 
 using `+` as value for `Valid post logout redirect URIs` and `Web origins` is just fine on dev machines.
 
-### 3.1. egastro-bff
+### 3.1. egastro
 - `Client authentication` enabled
 - `Authentication flow` select only `Standard flow`
-- you may set your local (BFF `https://localhost:7080`) as `Root URL`
+- you may set all the network interfaces for your local BFF as `Root URL` (`https://localhost:7080`, `https://{hostname}:7080`, `https://127.0.0.1:7080`, `https://10.0.2.2:7080`, `https://{static-ip-address}:7080`, as well as the `http` equivalents)
 - set `Valid redirect URIs`, `Valid post logout redirect URIs` and `Web origins`
 
 ### 3.2. restaurants-employees-mapper
@@ -96,11 +98,15 @@ using `+` as value for `Valid post logout redirect URIs` and `Web origins` is ju
 - `Authentication flow` select only `Service accounts roles`
 - in `Service accounts roles`, click `Assign role` to grant `KEYCLOAK_MAPPER`
 
-
 ### 3.3. egastro-admin-client
 - `Client authentication` enabled
 - `Authentication flow` select only `Service accounts roles`
 - in `Service accounts roles`, click `Assign role` to grant `query-realms` and `create-realm`
+
+### 3.4. additional test clients
+We'll use two more test clients simulating restaurants. Please just do the same as for  `3.1. egastro` with the following client names:
+- `sushibach`
+- `burger-house`
 
 ## 4. Identity providers
 The process is pretty simple: declare a client with `client_credentials` on the OpenID Provider you want to "Login with" and then report the `client-id` and `client-secret` into Keycloak administration console.
@@ -159,3 +165,14 @@ To add the new private claims delivered to the `egastro-bff` client when users l
 - click `Add mapper` and then `By configuration`
 - browse to `User employments mapper`
 - check the URIs and set the client secret with the value taken from the `Credentials` tab of `restaurants-employees-mapper` client
+
+## 6. Themes
+To demo the usage of Keycloak themes and their binding to clients, we'll create 3 themes.
+
+First, update your Keycloak `start-dev` command (edit `.bat` or `.sh` file if any)to one of:
+- `%KEYCLOAK_HOME%\kc.bat start-dev --spi-theme-static-max-age=-1 --spi-theme-cache-themes=false --spi-theme-cache-templates=false`
+- `bash ${KEYCLOAK_HOME}/kc.sh start-dev --spi-theme-static-max-age=-1 --spi-theme-cache-themes=false --spi-theme-cache-templates=false`
+
+Then, copy the content of `keycloak-themes` to the `themes folder` of your keycloak install directory.
+
+Then, select a custom login theme for each of your `egastro`, `sushibach` and `burger-house` clients in Keycloak admin console.

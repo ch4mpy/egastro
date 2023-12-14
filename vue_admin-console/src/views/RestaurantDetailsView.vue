@@ -3,6 +3,10 @@
 
 <template>
   <main>
-    <h1>Realms</h1>
+    <h1>{{ $route.params.realm }} realm</h1>
   </main>
 </template>
+
+<style>
+</style>
+

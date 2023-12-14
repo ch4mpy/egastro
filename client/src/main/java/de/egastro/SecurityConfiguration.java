@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.client.web.server.DefaultServerOAuth2
 import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
 import org.springframework.security.web.server.csrf.CsrfToken;
 import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestAttributeHandler;
@@ -68,8 +69,9 @@ public class SecurityConfiguration {
 			ServerOAuth2AuthorizationRequestResolver authorizationRequestResolver)
 			throws Exception {
 		http.oauth2ResourceServer(Customizer.withDefaults());
+		http.securityContextRepository(NoOpServerSecurityContextRepository.getInstance());
 		http.csrf(csrf -> csrf.disable());
-		http.authorizeExchange(ex -> ex.anyExchange().authenticated());
+		http.authorizeExchange(ex -> ex.anyExchange().permitAll());
 		return http.build();
 	}
 

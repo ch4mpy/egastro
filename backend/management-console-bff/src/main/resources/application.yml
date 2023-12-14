@@ -1,12 +1,15 @@
 scheme: http
-keycloak-host: https://localhost:8443
-username-claim: preferred_username
+hostname: localhost
+keycloak-host: https://${hostname}:8443
+username-claim: sub
 master-issuer: ${keycloak-host}/realms/master
-bff-secret: change-me
+egastro-secret: change-me
+sushibach-secret: change-me
+burger-house-secret: change-me
 
-gateway-uri: ${scheme}://localhost:${server.port}
-management-console-api-uri: ${scheme}://localhost:7084
-ui-host: https://localhost:4200
+gateway-uri: ${scheme}://${hostname}:${server.port}
+management-console-api-uri: ${scheme}://${hostname}:7084
+ui-host: ${scheme}://${hostname}:4200
 
 server:
   port: 7080
@@ -29,10 +32,30 @@ spring:
             issuer-uri: ${master-issuer}
             user-name-attribute: ${username-claim}
         registration:
-          egastro-bff:
+          egastro:
             provider: keycloak
-            client-id: egastro-bff
-            client-secret: ${bff-secret}
+            client-id: egastro
+            client-secret: ${egastro-secret}
+            authorization-grant-type: authorization_code
+            scope:
+            - openid
+            - profile
+            - email
+            - offline_access
+          sushibach:
+            provider: keycloak
+            client-id: sushibach
+            client-secret: ${sushibach-secret}
+            authorization-grant-type: authorization_code
+            scope:
+            - openid
+            - profile
+            - email
+            - offline_access
+          burger-house:
+            provider: keycloak
+            client-id: burger-house
+            client-secret: ${burger-house-secret}
             authorization-grant-type: authorization_code
             scope:
             - openid

@@ -349,6 +349,7 @@ If the auto-verification could not happen, which will probably be the case on yo
 
 Once the intents defined to route some URIs to our app, we should define the handling of this URI in our app. Well' do this with `GoRouter` in the `main.dart` file:
 ```dart
+const clientId = 'sushibach';
 final _router = GoRouter(
   routes: [
     GoRoute(
@@ -358,7 +359,7 @@ final _router = GoRouter(
       },
       routes: <RouteBase>[
         GoRoute(
-          path: 'login/oauth2/code/egastro-bff',
+          path: 'login/oauth2/code/$clientId',
           builder: (BuildContext context, GoRouterState state) {
             return Consumer<UserModel>(builder: (context, user, child) {
               return FutureBuilder<http.Response>(

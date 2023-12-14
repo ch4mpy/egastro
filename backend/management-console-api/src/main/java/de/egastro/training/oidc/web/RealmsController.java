@@ -35,7 +35,7 @@ public class RealmsController {
 	private final KeycloakRealmService realmService;
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-	@PreAuthorize("hasAnyAuthority('EGASTRO_RESTAURANT_MANAGER')")
+	@PreAuthorize("hasAnyAuthority('EGASTRO_REALM_MANAGER')")
 	@Transactional(readOnly = true)
 	public List<RealmResponseDto> listRealms() {
 		final var realms = realmService.getRealms();
@@ -43,7 +43,7 @@ public class RealmsController {
 	}
 
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-	@PreAuthorize("hasAuthority('EGASTRO_RESTAURANT_MANAGER')")
+	@PreAuthorize("hasAuthority('EGASTRO_REALM_MANAGER')")
 	@Transactional()
 	@Operation(responses = { @ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created realm")) })
 	public ResponseEntity<Void> createRealm(@RequestBody @Valid RealmCreationDto dto) {

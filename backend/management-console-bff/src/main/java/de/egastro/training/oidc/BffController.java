@@ -34,7 +34,7 @@ public class BffController {
 				.filter(e -> "authorization_code".equals(e.getValue().getAuthorizationGrantType()))
 				.map(
 						e -> new LoginOptionDto(
-								e.getValue().getProvider(),
+								e.getValue().getClientId(),
 								"%s/oauth2/authorization/%s".formatted(addonsProperties.getClient().getClientUri(), e.getKey())))
 				.toList();
 	}

@@ -65,7 +65,7 @@ public class RestaurantsController {
 
 	@PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
-	@PreAuthorize("hasAuthority('EGASTRO_RESTAURANT_MANAGER')")
+	@PreAuthorize("hasAnyAuthority('EGASTRO_RESTAURANT_MANAGER')")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created restaurant")),

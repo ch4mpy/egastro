@@ -43,6 +43,7 @@ public class GreetController {
 	/*---------------------------------------------------------*/
 
 	@GetMapping("/me")
+	@PreAuthorize("permitAll()")
 	public UserDto getMe(Authentication auth) {
 		if (auth instanceof EGastroAuthentication egAuth) {
 			return new UserDto(
@@ -88,14 +89,14 @@ public class GreetController {
 	}
 
 	@GetMapping("/restaurants/{restaurantId}/meals/{mealId}")
-	@PreAuthorize("hasOrdered(#meal) or worksFor(#restaurant)")
+	@PreAuthorize("hasOrdered(#meal) || worksFor(#restaurant)")
 	public Meal retreiveMeal(@PathVariable("restaurantId") Restaurant restaurant, @PathVariable("mealId") Meal meal) {
 
 		return meal;
 	}
 
 	@PutMapping("/restaurants/{restaurantId}/meals/{mealId}")
-	@PreAuthorize("hasOrdered(#meal) || worksFor(#restaurant)")
+	@PreAuthorize("hasOrdered(#meal) or worksFor(#restaurant)")
 	public ResponseEntity<Void> updateMeal(
 			@PathVariable("restaurantId") Restaurant restaurant,
 			@PathVariable("mealId") Meal meal,

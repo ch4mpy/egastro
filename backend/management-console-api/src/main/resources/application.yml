@@ -1,6 +1,7 @@
 scheme: http
-keycloak-host: https://localhost:8443
-username-claim: preferred_username
+hostname: localhost
+keycloak-host: https://${hostname}:8443
+username-claim: sub
 master-issuer: ${keycloak-host}/realms/master
 admin-client-secret: change-me
 
@@ -54,7 +55,7 @@ com:
     springaddons:
       oidc:
         ops:
-        - iss: ${keycloak-host}
+        - iss: ${master-issuer}
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles

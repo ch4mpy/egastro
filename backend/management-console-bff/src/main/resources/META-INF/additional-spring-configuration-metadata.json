@@ -6,6 +6,11 @@
       "description": "Scheme used for this server"
     },
     {
+      "name": "hostname",
+      "type": "java.lang.String",
+      "description": "Hostname for this server (can be useful to switch to something else than localhost when debugging mobile device)"
+    },
+    {
       "name": "keycloak-host",
       "type": "java.net.URI",
       "description": "Base URI for the authorization server"
@@ -21,7 +26,12 @@
       "description": "Value of the issuer claim in access tokens from the master realm"
     },
     {
-      "name": "bff-secret",
+      "name": "burger-house-secret",
+      "type": "java.lang.String",
+      "description": "Secret for the OAuth2 client"
+    },
+    {
+      "name": "sushibach-secret",
       "type": "java.lang.String",
       "description": "Secret for the OAuth2 client"
     },

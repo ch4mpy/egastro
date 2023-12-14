@@ -11,8 +11,6 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -33,9 +31,6 @@ public class Order {
 	private String customerName;
 
 	@ManyToOne(optional = false)
-	@JoinColumns({
-			@JoinColumn(name = "restaurant_realm", referencedColumnName = "realm", nullable = false, updatable = false),
-			@JoinColumn(name = "restaurant_name", referencedColumnName = "name", nullable = false, updatable = false) })
 	private Restaurant restaurant;
 
 	@OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "id.order")

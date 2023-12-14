@@ -1313,10 +1313,8 @@ final class EGastroMethodSecurityExpressionRoot extends C4MethodSecurityExpressi
 There dynamic multi-tenancy strategy we use here is generic enough for `spring-addons` to implement it already. So we'll use the `IssuerStartsWithAuthenticationManagerResolver` implementation from the lib!
 
 ### <a name="spring-addons-api-conf">7.4. OAuth2 REST API Configuration
-All we need is defining:
-- a `@Bean` to change the way authorities mapping properties are resolved (use the `keycloak-host` configuration property instead of the token `iss` claim)
+As a noticeable difference from the `resource server` lab, we'll now use static realms and the `sub` claim as username. All we need is defining:
 - a `@Bean` to override the default authentication converter to produce eGastro `Authentication` implementation
-- a `@Bean` to override the default authentication manager resolver (accept tokens issued by any realm from our Keycloak server)
 - a `@Bean` to add our custom DSL to Spring Security SpEL
 ```java
 @Configuration
@@ -1324,28 +1322,14 @@ All we need is defining:
 public class SecurityConfig {
 
 	@Bean
-	ConfigurableClaimSetAuthoritiesConverter authoritiesConverter(@Value("${keycloak-host}") URI keycloakHost, SpringAddonsOidcProperties addonsProperties) {
-		final var opProperties = addonsProperties.getOpProperties(keycloakHost.toString());
-		return new ConfigurableClaimSetAuthoritiesConverter(claims -> opProperties.getAuthorities());
-	}
-
-	@Bean
 	JwtAbstractAuthenticationTokenConverter authenticationFactory(
-			@Value("${keycloak-host}") URI keycloakHost,
 			Converter<Map<String, Object>, Collection<? extends GrantedAuthority>> authoritiesConverter,
 			SpringAddonsOidcProperties addonsProperties) {
 		return jwt -> {
-			final var opProperties = addonsProperties.getOpProperties(keycloakHost.toString());
+			final var opProperties = addonsProperties.getOpProperties(jwt.getIssuer());
 			final var claims = new OpenidClaimSet(jwt.getClaims(), opProperties.getUsernameClaim());
 			return new EGastroAuthentication(claims, authoritiesConverter.convert(claims), jwt.getTokenValue());
 		};
-	}
-
-	@Bean
-	AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver(
-			@Value("${keycloak-host}") URI keycloakHost,
-			Converter<Jwt, AbstractAuthenticationToken> authenticationConverter) {
-		return new JwtIssuerAuthenticationManagerResolver(new IssuerStartsWithAuthenticationManagerResolver(keycloakHost.toString(), authenticationConverter));
 	}
 
 	@Bean
@@ -1356,15 +1340,18 @@ public class SecurityConfig {
 ```
 The `SecurityFilterChain` bean is provided by `spring-addons` starter and configured to use the beans we defined here instead of its defaults and the following properties:
 ```yaml
-keycloak-host: https://localhost:8443
-username-claim: preferred_username
+scheme: http
+hostname: localhost
+keycloak-host: ${scheme}://${hostname}:8443
+username-claim: sub
+master-issuer: ${keycloak-host}/realms/master
 
 com:
   c4-soft:
     springaddons:
       oidc:
         ops:
-        - iss: ${keycloak-host}
+        - iss: ${master-issuer}
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
@@ -1376,6 +1363,7 @@ com:
           - "/actuator/health/liveness"
           - "/v3/api-docs/**"
 ```
+In the case where we wanted more realms to be accepted as trusted issuers, we would just add more entries to the `ops` array.
 
 ### <a name="spring-addons-bff-conf">7.5. BFF Configuration
 Apparently, the `spring-cloud-gateway-mvc` is not completely stable yet and will have to use `spring-cloud-gateway`, but be careful that it is a reactive application expecting reactive security conf (`@EnableWebFluxSecurity` instead of `@EnableWebSecurity`, expose `SecurityWebFilterChain` instead of `SecurityFilterChain`, etc.). Hopefully, spring-addons auto-detects the application type and adapts its auto-configuration.
@@ -1416,17 +1404,29 @@ static class KcIdpHintAwareOAuth2AuthorizationRequestResolver implements ServerO
 ```
 The properties contains two sections one for the OAuth2 client filter chain and another for the resource server one:
 ```yaml
+scheme: http
+hostname: localhost
+keycloak-host: https://${hostname}:8443
+username-claim: sub
+master-issuer: ${keycloak-host}/realms/master
+egastro-secret: change-me
+sushibach-secret: change-me
+burger-house-secret: change-me
+
+gateway-uri: ${scheme}://${hostname}:${server.port}
+management-console-api-uri: ${scheme}://${hostname}:7084
+ui-host: ${scheme}://${hostname}:4200
+
 com:
   c4-soft:
     springaddons:
       oidc:
         # Global OAuth2 configuration
         ops:
-        - iss: ${keycloak-host}
+        - iss: ${master-issuer}
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
-          - path: $.resource_access.observability.roles
         client:
           client-uri: ${gateway-uri}
           security-matchers:
@@ -1483,11 +1483,46 @@ spring:
         - TokenRelay=
         - SaveSession
         - StripPrefix=2
-      # Access the API as an OAuth2 client (without the TokenRelay filter)
-      - id: bff
-        uri: ${management-console-api-uri}
-        predicates:
-        - Path=/direct/v1/**
-        filters:
-        - StripPrefix=2
+```
+Last, we'll define some Spring Security OAuth2 properties for three distinct registrations:
+```yaml
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${master-issuer}
+            user-name-attribute: ${username-claim}
+        registration:
+          egastro:
+            provider: keycloak
+            client-id: egastro
+            client-secret: ${egastro-secret}
+            authorization-grant-type: authorization_code
+            scope:
+            - openid
+            - profile
+            - email
+            - offline_access
+          sushibach:
+            provider: keycloak
+            client-id: sushibach
+            client-secret: ${sushibach-secret}
+            authorization-grant-type: authorization_code
+            scope:
+            - openid
+            - profile
+            - email
+            - offline_access
+          burger-house:
+            provider: keycloak
+            client-id: burger-house
+            client-secret: ${burger-house-secret}
+            authorization-grant-type: authorization_code
+            scope:
+            - openid
+            - profile
+            - email
+            - offline_access
 ```

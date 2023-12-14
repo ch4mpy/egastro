@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-ManagementConsoleBff<management-console-bff>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "de.egastro.training.oidc.ManagementConsoleBff",
+            "projectName": "management-console-bff",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-ManagementConsoleApi<management-console-api>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "de.egastro.training.oidc.ManagementConsoleApi",
+            "projectName": "management-console-api",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

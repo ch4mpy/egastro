@@ -1,7 +1,7 @@
 
 import { ref } from 'vue'
 
-const bff = 'https://localhost:7080'
+const bff = 'https://192.168.1.182:7080'
 
 export interface LoginOptionDto {
     label: string,

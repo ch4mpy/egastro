@@ -34,6 +34,7 @@ import de.egastro.training.oidc.dtos.restaurants.OrderLineResponseDto;
 import de.egastro.training.oidc.dtos.restaurants.OrderLineUpdateDto;
 import de.egastro.training.oidc.dtos.restaurants.OrderResponseDto;
 import de.egastro.training.oidc.dtos.restaurants.OrderUpdateDto;
+import de.egastro.training.oidc.security.EGastroAuthentication;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -94,7 +95,8 @@ public class OrdersController {
 	public ResponseEntity<OrderResponseDto> createOrder(
 			@PathVariable("realmName") @NotEmpty String realmName,
 			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant,
-			@RequestBody @Valid OrderCreationDto dto)
+			@RequestBody @Valid OrderCreationDto dto,
+			EGastroAuthentication auth)
 			throws RestaurantNotFoundException,
 			DishesFromAnotherRestaurantException {
 		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
@@ -105,7 +107,8 @@ public class OrdersController {
 		if (orderedDishes.stream().anyMatch(d -> !Objects.equals(restaurant.getId(), d.getRestaurant().getId()))) {
 			throw new DishesFromAnotherRestaurantException();
 		}
-		final var order = new Order(restaurant, dto.customer(), List.of(), Instant.now(), Instant.ofEpochSecond(dto.askedFor()));
+		final var customer = auth.getWorksAt().contains(restaurant.getId()) ? dto.customer() : auth.getName();
+		final var order = new Order(restaurant, customer, List.of(), Instant.now(), Instant.ofEpochSecond(dto.askedFor()));
 		final var lines = dto.lines().stream().map(lineDto -> {
 			final var dish = orderedDishes
 					.stream()

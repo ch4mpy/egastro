@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
-import 'dart:html' as html;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -37,7 +36,7 @@ class UserModel extends ChangeNotifier {
     if (location.isNotEmpty) {
       final uri = Uri.parse(location);
       if (kIsWeb) {
-        html.window.open(location, '_self');
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
       } else {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
@@ -71,7 +70,12 @@ class UserModel extends ChangeNotifier {
       if (secondsBeforeExp > 2 && decoded['username'].toString().isNotEmpty) {
         final roles = (decoded['roles'] ?? []).cast<String>();
         _currentUser = User(
-            exp: decoded['exp'], manages: decoded['manages'] ?? [], realm: decoded['realm'], roles: roles, username: decoded['username'], worksFor: decoded['worksFor'] ?? []);
+            exp: decoded['exp'],
+            manages: (decoded['manages'] ?? []).cast<int>(),
+            realm: decoded['realm'] ?? '',
+            roles: roles,
+            username: decoded['name'] ?? '',
+            worksFor: (decoded['worksFor'] ?? []).cast<int>());
         _timer = Timer(Duration(seconds: (secondsBeforeExp * .8).toInt()),
             () => refresh());
       } else {
@@ -101,7 +105,13 @@ class UserModel extends ChangeNotifier {
 }
 
 class User {
-  const User({required this.realm, required this.username, required this.roles, required this.manages, required this.worksFor, required this.exp});
+  const User(
+      {required this.realm,
+      required this.username,
+      required this.roles,
+      required this.manages,
+      required this.worksFor,
+      required this.exp});
 
   final String realm;
   final String username;
@@ -110,7 +120,8 @@ class User {
   final List<int> worksFor;
   final int exp;
 
-  static const User anonymous = User(realm: '', username: '', roles: [], manages: [], worksFor: [], exp: -1);
+  static const User anonymous = User(
+      realm: '', username: '', roles: [], manages: [], worksFor: [], exp: -1);
 
   bool isAuthenticated() {
     return username.isNotEmpty;

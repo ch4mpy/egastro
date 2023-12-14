@@ -29,6 +29,7 @@ class MainApp extends StatelessWidget {
   }
 }
 
+const clientId = 'sushibach';
 final _router = GoRouter(
   routes: [
     GoRoute(
@@ -38,7 +39,7 @@ final _router = GoRouter(
       },
       routes: <RouteBase>[
         GoRoute(
-          path: 'login/oauth2/code/egastro-bff',
+          path: "login/oauth2/code/$clientId",
           builder: (BuildContext context, GoRouterState state) {
             return Consumer<UserModel>(builder: (context, user, child) {
               return FutureBuilder<http.Response>(
