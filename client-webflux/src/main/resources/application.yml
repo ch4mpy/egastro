@@ -1,0 +1,105 @@
+scheme: http
+keycloak-host: https://localhost:8443
+master-issuer: ${keycloak-host}/realms/master
+bff-secret: change-me
+permit-all: >
+  /error,
+  /ui/**,
+  /direct/**,
+  /v3/api-docs/**,
+  /actuator/health/readiness,
+  /actuator/health/liveness
+
+server:
+  ssl:
+    enabled: false
+  port: 7080
+
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${master-issuer}
+            user-name-attribute: preferred_username
+        registration:
+          egastro-bff:
+            provider: keycloak
+            client-id: egastro-bff
+            client-secret: ${bff-secret}
+            authorization-grant-type: authorization_code
+            scope:
+            - openid
+            - profile
+            - email
+            - offline_access
+  cloud:
+    gateway:
+      mvc:
+        routes:
+        # Redirection from / to /ui/
+        - id: home
+          uri: ${gateway-uri}
+          predicates:
+          - Path=/
+          filters:
+          - RedirectTo=301,${gateway-uri}/ui/
+        # Serve the Angular app through the gateway
+        - id: ui
+          uri: ${ui-host}
+          predicates:
+          - Path=/ui/**
+        # Access the API with BFF pattern
+        - id: bff
+          uri: ${management-console-api-uri}
+          predicates:
+          - Path=/bff/v1/**
+          filters:
+          - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin Access-Control-Request-Method Access-Control-Request-Headers
+          - TokenRelay=
+          - SaveSession
+          - StripPrefix=2
+        # Access the API as an OAuth2 client (without the TokenRelay filter)
+        - id: bff
+          uri: ${management-console-api-uri}
+          predicates:
+          - Path=/direct/v1/**
+          filters:
+          - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin Access-Control-Request-Method Access-Control-Request-Headers
+          - StripPrefix=2
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    org:
+      springframework:
+        security: TRACE
+        boot: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: ssl
+
+server:
+  ssl:
+    enabled: true
+
+scheme: https

@@ -6,13 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public record UserResponseDto(
-		@NotNull String realm,
-		@NotNull String name,
-		@NotNull String email,
-		@NotNull List<String> roles,
-		@NotNull List<Long> manages,
-		@NotNull List<Long> worksFor,
-		Long exp) {
+public record UserResponseDto(@NotNull String realm, @NotNull String subject, @NotNull String username, @NotNull String email, @NotNull List<String> roles) {
 
 }

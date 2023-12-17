@@ -1,8 +1,6 @@
 package de.egastro.training.oidc;
 
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.StreamSupport;
@@ -15,7 +13,6 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 
 import de.egastro.training.oidc.domain.Restaurant;
 import de.egastro.training.oidc.domain.persistence.RestaurantRepository;
-import de.egastro.training.oidc.feign.KeycloakRealmService;
 
 @SpringBootApplication
 public class ManagementConsoleApi {
@@ -42,16 +39,15 @@ public class ManagementConsoleApi {
 	private static void initDomain(ApplicationContext ctx) {
 
 		final var restaurantRepo = ctx.getBean(RestaurantRepository.class);
-		final var realmService = ctx.getBean(KeycloakRealmService.class);
 
-		final var realms = realmService.getRealms();
-		if (realms.stream().filter(r -> "sushibach".equals(r.realm())).count() == 0) {
-			realmService.createRealm("sushibach", Optional.empty());
+		final var sushibach = restaurantRepo.findByAuthorizedParty("sushibach");
+		if (sushibach.isEmpty()) {
+			restaurantRepo.save(new Restaurant("Sushi Bach", "sushibach"));
 		}
 
-		final var sushibach = restaurantRepo.findByRealmNameAndName("sushibach", "Sushi Bach");
-		if (sushibach.isEmpty()) {
-			restaurantRepo.save(new Restaurant("sushibach", "Sushi Bach", List.of("ch4mp", "tonton-pirate")));
+		final var burgerHouse = restaurantRepo.findByAuthorizedParty("burger-house");
+		if (burgerHouse.isEmpty()) {
+			restaurantRepo.save(new Restaurant("Burger House", "burger-house"));
 		}
 	}
 

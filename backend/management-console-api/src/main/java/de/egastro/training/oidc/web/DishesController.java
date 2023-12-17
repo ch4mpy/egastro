@@ -23,10 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 import de.egastro.training.oidc.domain.Dish;
 import de.egastro.training.oidc.domain.Restaurant;
 import de.egastro.training.oidc.domain.persistence.DishRepository;
-import de.egastro.training.oidc.domain.persistence.RestaurantRepository.RestaurantNotFoundException;
 import de.egastro.training.oidc.dtos.ErrorDto;
 import de.egastro.training.oidc.dtos.restaurants.DishResponseDto;
 import de.egastro.training.oidc.dtos.restaurants.DishUpdateDto;
+import de.egastro.training.oidc.web.RestaurantsController.RestaurantNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -40,7 +40,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/realms/{realmName}/restaurants/{restaurantId}/dishes")
+@RequestMapping("/realms/{authorizedParty}/restaurants/{restaurantId}/dishes")
 @RequiredArgsConstructor
 @Tag(name = "Dishes")
 public class DishesController {
@@ -56,18 +56,18 @@ public class DishesController {
 	@PreAuthorize("permitAll()")
 	@Operation(responses = { @ApiResponse(headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created dish")) })
 	public List<DishResponseDto> listDishes(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant)
 			throws RestaurantNotFoundException {
-		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
-			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		if (!Objects.equals(restaurant.getAuthorizedParty(), authorizedParty)) {
+			throw new RestaurantNotFoundException(authorizedParty, restaurant.getName());
 		}
 		return restaurant.getDishes().stream().map(DishesController::toDto).toList();
 	}
 
 	@PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
-	@PreAuthorize("worksFor(#restaurant)")
+	@PreAuthorize("on(#restaurant).isGrantedWith('EDIT_MENUS')")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created dish")),
@@ -80,19 +80,19 @@ public class DishesController {
 							description = "Restaurant not found",
 							content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<DishResponseDto> createDish(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant,
 			@RequestBody @Valid DishUpdateDto dto)
 			throws RestaurantNotFoundException {
-		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
-			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		if (!Objects.equals(restaurant.getAuthorizedParty(), authorizedParty)) {
+			throw new RestaurantNotFoundException(authorizedParty, restaurant.getName());
 		}
 		final var dish = new Dish(restaurant, dto.name(), dto.priceInCents());
 		restaurant.getDishes().add(dish);
 		final var saved = dishRepo.save(new Dish(restaurant, dto.name(), dto.priceInCents()));
 		return ResponseEntity
 				.accepted()
-				.location(URI.create("/realms/%s/restaurants/%d/dishes/%d".formatted(realmName, restaurant.getId(), saved.getId())))
+				.location(URI.create("/realms/%s/restaurants/%d/dishes/%d".formatted(authorizedParty, restaurant.getId(), saved.getId())))
 				.body(toDto(saved));
 	}
 
@@ -104,20 +104,19 @@ public class DishesController {
 					@ApiResponse(headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created dish")),
 					@ApiResponse(responseCode = "404", description = "Dish not found") })
 	public DishResponseDto retrieveDish(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("dishId") @Parameter(schema = @Schema(type = "integer")) Dish dish)
 			throws DishNotFoundException {
-		if (!Objects.equals(dish.getRestaurant().getRealmName(), realmName) || !Objects.equals(dish.getRestaurant().getId(), restaurantId)) {
-			throw new DishNotFoundException(dish.getId(), restaurantId, realmName);
+		if (!Objects.equals(dish.getRestaurant().getAuthorizedParty(), authorizedParty) || !Objects.equals(dish.getRestaurant().getId(), restaurantId)) {
+			throw new DishNotFoundException(dish.getId(), restaurantId, authorizedParty);
 		}
 		return toDto(dish);
 	}
 
 	@PutMapping(path = "/{dishId}", consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
-	@PreAuthorize("worksFor(#restaurantId)")
-	// @PreAuthorize("worksFor(#dish.restaurant)")
+	@PreAuthorize("on(#restaurantId).isGrantedWith('EDIT_MENUS')")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the updated dish")),
@@ -127,35 +126,38 @@ public class DishesController {
 							content = @Content(schema = @Schema(implementation = ErrorDto.class))),
 					@ApiResponse(responseCode = "404", description = "Dish not found", content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<Void> updateDish(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("dishId") @Parameter(schema = @Schema(type = "integer")) Dish dish,
 			@RequestBody @Valid DishUpdateDto dto)
 			throws DishNotFoundException {
-		if (!Objects.equals(dish.getRestaurant().getRealmName(), realmName) || !Objects.equals(dish.getRestaurant().getId(), restaurantId)) {
-			throw new DishNotFoundException(dish.getId(), restaurantId, realmName);
+		if (!Objects.equals(dish.getRestaurant().getAuthorizedParty(), authorizedParty) || !Objects.equals(dish.getRestaurant().getId(), restaurantId)) {
+			throw new DishNotFoundException(dish.getId(), restaurantId, authorizedParty);
 		}
 		dish.setName(dto.name());
 		dish.setPriceInCents(dto.priceInCents());
 		final var saved = dishRepo.save(dish);
-		return ResponseEntity.accepted().location(URI.create("/realms/%s/restaurants/%d/dishes/%d".formatted(realmName, restaurantId, saved.getId()))).build();
+		return ResponseEntity
+				.accepted()
+				.location(URI.create("/realms/%s/restaurants/%d/dishes/%d".formatted(authorizedParty, restaurantId, saved.getId())))
+				.build();
 	}
 
 	@DeleteMapping("/{dishId}")
 	@Transactional()
-	@PreAuthorize("worksFor(#restaurantId)")
+	@PreAuthorize("on(#restaurantId).isGrantedWith('EDIT_MENUS')")
 	// @PreAuthorize("worksFor(#dish.restaurant)")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", description = "Dish deletion accepted"),
 					@ApiResponse(responseCode = "404", description = "Dish not found", content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<Void> deleteDish(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("dishId") @Parameter(schema = @Schema(type = "integer")) Dish dish)
 			throws DishNotFoundException {
-		if (!Objects.equals(dish.getRestaurant().getRealmName(), realmName) || !Objects.equals(dish.getRestaurant().getId(), restaurantId)) {
-			throw new DishNotFoundException(dish.getId(), restaurantId, realmName);
+		if (!Objects.equals(dish.getRestaurant().getAuthorizedParty(), authorizedParty) || !Objects.equals(dish.getRestaurant().getId(), restaurantId)) {
+			throw new DishNotFoundException(dish.getId(), restaurantId, authorizedParty);
 		}
 		dish.getRestaurant().getDishes().remove(dish);
 		dishRepo.delete(dish);

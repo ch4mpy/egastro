@@ -31,7 +31,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="https" />
-                <data android:host="localhost" />
+                <data android:host="192.168.1.182" />
                 <data android:port="7080" />
                 <data android:pathPrefix="/login/oauth2/code" />
             </intent-filter>

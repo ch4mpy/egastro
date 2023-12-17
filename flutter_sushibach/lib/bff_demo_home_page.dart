@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sushibach/src/user.model.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 class BffDemoHomePage extends StatefulWidget {
   const BffDemoHomePage({super.key});
@@ -10,6 +13,7 @@ class BffDemoHomePage extends StatefulWidget {
 }
 
 class _BffDemoHomePageState extends State<BffDemoHomePage> {
+  
   @override
   Widget build(BuildContext context) {
     return Consumer<UserModel>(builder: (context, user, child) {
@@ -36,7 +40,7 @@ class _BffDemoHomePageState extends State<BffDemoHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const Text(
-                'You hare: ',
+                'You are: ',
               ),
               Text(
                 user.current.username,

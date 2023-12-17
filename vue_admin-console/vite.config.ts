@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
-  base: '/ui',
+  base: '/admin-console',
   server: {
     host: "0.0.0.0",
     port: 4200,
@@ -11,6 +11,7 @@ export default defineConfig({
       cert: 'C:/Users/ch4mp/.ssh/bravo-ch4mp_self_signed.pem',
       key: 'C:/Users/ch4mp/.ssh/bravo-ch4mp_req_key.pem'
     },
-    open: true,
+    open: 'https://192.168.1.182:7080/admin-console',
+    
   }
 })

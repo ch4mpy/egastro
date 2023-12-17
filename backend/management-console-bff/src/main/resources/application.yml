@@ -2,14 +2,10 @@ scheme: http
 hostname: localhost
 keycloak-host: https://${hostname}:8443
 username-claim: sub
-master-issuer: ${keycloak-host}/realms/master
-egastro-secret: change-me
-sushibach-secret: change-me
-burger-house-secret: change-me
+oauth2-clients-secret: change-me
 
 gateway-uri: ${scheme}://${hostname}:${server.port}
 management-console-api-uri: ${scheme}://${hostname}:7084
-ui-host: ${scheme}://${hostname}:4200
 
 server:
   port: 7080
@@ -28,14 +24,17 @@ spring:
     oauth2:
       client:
         provider:
-          keycloak:
-            issuer-uri: ${master-issuer}
+          business:
+            issuer-uri: ${keycloak-host}/realms/business
+            user-name-attribute: ${username-claim}
+          consumer:
+            issuer-uri: ${keycloak-host}/realms/consumer
             user-name-attribute: ${username-claim}
         registration:
-          egastro:
-            provider: keycloak
-            client-id: egastro
-            client-secret: ${egastro-secret}
+          admin-console:
+            provider: business
+            client-id: admin-console
+            client-secret: ${oauth2-clients-secret}
             authorization-grant-type: authorization_code
             scope:
             - openid
@@ -43,9 +42,9 @@ spring:
             - email
             - offline_access
           sushibach:
-            provider: keycloak
+            provider: business
             client-id: sushibach
-            client-secret: ${sushibach-secret}
+            client-secret: ${oauth2-clients-secret}
             authorization-grant-type: authorization_code
             scope:
             - openid
@@ -53,9 +52,9 @@ spring:
             - email
             - offline_access
           burger-house:
-            provider: keycloak
+            provider: business
             client-id: burger-house
-            client-secret: ${burger-house-secret}
+            client-secret: ${oauth2-clients-secret}
             authorization-grant-type: authorization_code
             scope:
             - openid
@@ -73,12 +72,32 @@ spring:
         predicates:
         - Path=/
         filters:
-        - RedirectTo=301,${gateway-uri}/ui/
-      # Serve the Angular app through the gateway
-      - id: ui
-        uri: ${ui-host}
+        - RedirectTo=301,${gateway-uri}/admin-console/
+      
+      # Serve the Vue 3 frontends through the gateway
+      - id: admin-console
+        uri: ${scheme}://${hostname}:4200
         predicates:
-        - Path=/ui/**
+        - Path=/admin-console/**
+      - id: sushibach
+        uri: ${scheme}://${hostname}:4201
+        predicates:
+        - Path=/sushibach/**
+      - id: burger-house
+        uri: ${scheme}://${hostname}:4202
+        predicates:
+        - Path=/burger-house/**
+      
+      # Proxy authorization-server
+      - id: keycloak
+        uri: ${keycloak-host}
+        predicates:
+        - Path=/realms/**
+      - id: keycloak-resources
+        uri: ${keycloak-host}
+        predicates:
+        - Path=/resources/2i2l7/**
+      
       # Access the API with BFF pattern
       - id: bff
         uri: ${management-console-api-uri}
@@ -95,7 +114,15 @@ com:
       oidc:
         # Global OAuth2 configuration
         ops:
-        - iss: ${master-issuer}
+        - iss: ${keycloak-host}/realms/master
+          username-claim: ${username-claim}
+          authorities:
+          - path: $.realm_access.roles
+        - iss: ${keycloak-host}/realms/business
+          username-claim: ${username-claim}
+          authorities:
+          - path: $.realm_access.roles
+        - iss: ${keycloak-host}/realms/consumer
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
@@ -111,8 +138,6 @@ com:
           - /login/**
           - /oauth2/**
           csrf: cookie-accessible-from-js
-          post-login-redirect-path: /ui/
-          post-logout-redirect-path: /ui/
           oauth2-redirections:
             rp-initiated-logout: ACCEPTED
           cors:
@@ -122,7 +147,11 @@ com:
           permit-all:
           - /error
           - /login-options
-          - /ui/**
+          - /admin-console/**
+          - /sushibach/**
+          - /burger-house/**
+          - /realms/**
+          - /resources/2i2l7/**
           - /v3/api-docs/**
           - /swagger-ui/**
           - /actuator/health/readiness
@@ -151,7 +180,7 @@ logging:
     root: INFO
     org:
       springframework:
-        security: DEBUG
+        security: TRACE
         boot: INFO
     
 ---

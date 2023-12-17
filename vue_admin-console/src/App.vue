@@ -9,18 +9,14 @@ const { cookies } = useCookies();
 
 // Valid login options, loaded by the UserService called in onMounted
 const loginOptions: Ref<LoginOptionDto[]> = ref([])
-// bound to input next to login button
-const restaurant = ref('')
-// computed value to set login button state
-const isLoginDisabled = computed(() => {
-  return !loginOptions.value.filter(opt => opt.label === restaurant.value).length;
-})
+// the registrationID on the BFF
+const oauth2ClientRegistration = 'admin-console'
 
 // inject the singleton defined in main.js
 const user = inject('UserService') as UserService;
 
 function login() {
-  const href = loginOptions.value.filter(opt => opt.label === restaurant.value).map(loginOpt => loginOpt.href) || [];
+  const href = loginOptions.value.filter(opt => opt.label === oauth2ClientRegistration).map(loginOpt => loginOpt.href) || [];
   if (href.length) {
     user.login(href[0])
   }
@@ -44,10 +40,7 @@ onMounted(async () => {
       </router-link>
       <button v-if="user.current.value.isAuthenticated && $route.path === '/me'"
         @click="logout(cookies.get('XSRF-TOKEN'))">Logout</button>
-      <span v-if="!user.current.value.isAuthenticated">
-        <input placeholder="restaurant" v-model="restaurant" @keyup.enter="login" />
-        <button @click="login" :disabled="isLoginDisabled">Login</button>
-      </span>
+      <button v-if="!user.current.value.isAuthenticated" @click="login">Login</button>
     </div>
     <div>
       <RouterView />

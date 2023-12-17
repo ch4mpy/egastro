@@ -132,9 +132,8 @@ public class RestaurantsEmployeesKeycloakMapper extends AbstractOIDCProtocolMapp
 		final var realm = Optional.ofNullable(userSession.getRealm()).map(RealmModel::getName).orElse("");
 		final var username = Optional.ofNullable(userSession.getUser()).map(UserModel::getUsername).orElse("");
 		if (StringUtils.hasText(realm) && StringUtils.hasText(username)) {
-			RestaurantsEmployeesClient.getInstance(clientConfig).getUserEmployments(realm, username).ifPresent(userEmployments -> {
-				token.getOtherClaims().put("manages", userEmployments.manages());
-				token.getOtherClaims().put("worksAt", userEmployments.worksAt());
+			RestaurantsEmployeesClient.getInstance(clientConfig).getUserGrants(realm, username).ifPresent(userGrants -> {
+				token.getOtherClaims().put("grantsByRestaurantId", userGrants.grantsByRestaurantId());
 				setClaim(token, mappingModel, userSession, keycloakSession, clientSessionCtx);
 			});
 		}

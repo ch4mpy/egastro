@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.RestController;
 import de.egastro.training.oidc.domain.Order;
 import de.egastro.training.oidc.domain.OrderLine;
 import de.egastro.training.oidc.domain.Restaurant;
+import de.egastro.training.oidc.domain.RestaurantGrant;
 import de.egastro.training.oidc.domain.persistence.DishRepository;
 import de.egastro.training.oidc.domain.persistence.InstantEpochSecondConverter;
 import de.egastro.training.oidc.domain.persistence.OrderRepository;
-import de.egastro.training.oidc.domain.persistence.RestaurantRepository.RestaurantNotFoundException;
 import de.egastro.training.oidc.dtos.ErrorDto;
 import de.egastro.training.oidc.dtos.restaurants.OrderCreationDto;
 import de.egastro.training.oidc.dtos.restaurants.OrderLineResponseDto;
@@ -35,6 +35,7 @@ import de.egastro.training.oidc.dtos.restaurants.OrderLineUpdateDto;
 import de.egastro.training.oidc.dtos.restaurants.OrderResponseDto;
 import de.egastro.training.oidc.dtos.restaurants.OrderUpdateDto;
 import de.egastro.training.oidc.security.EGastroAuthentication;
+import de.egastro.training.oidc.web.RestaurantsController.RestaurantNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -48,7 +49,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/realms/{realmName}/restaurants/{restaurantId}/orders")
+@RequestMapping("/authorized-parties/{authorizedParty}/restaurants/{restaurantId}/orders")
 @RequiredArgsConstructor
 @Tag(name = "Orders")
 public class OrdersController {
@@ -65,18 +66,18 @@ public class OrdersController {
 	@PreAuthorize("worksFor(#restaurant)")
 	@Operation(responses = { @ApiResponse(description = "Ok"), @ApiResponse(responseCode = "404", description = "Restaurant not found") })
 	public List<OrderResponseDto> listOrders(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant)
 			throws RestaurantNotFoundException {
-		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
-			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		if (!Objects.equals(restaurant.getAuthorizedParty(), authorizedParty)) {
+			throw new RestaurantNotFoundException(authorizedParty, restaurant.getName());
 		}
 		return restaurant.getOrders().stream().map(OrdersController::toDto).toList();
 	}
 
 	@PostMapping(produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
-	@PreAuthorize("isFrom(#realmName)")
+	@PreAuthorize("isAuthenticated()")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the created order")),
@@ -93,28 +94,30 @@ public class OrdersController {
 							description = "Dish from another restaurant",
 							content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<OrderResponseDto> createOrder(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @Parameter(schema = @Schema(type = "integer")) Restaurant restaurant,
 			@RequestBody @Valid OrderCreationDto dto,
 			EGastroAuthentication auth)
 			throws RestaurantNotFoundException,
 			DishesFromAnotherRestaurantException {
-		if (!Objects.equals(restaurant.getRealmName(), realmName)) {
-			throw new RestaurantNotFoundException(realmName, restaurant.getName());
+		if (!Objects.equals(restaurant.getAuthorizedParty(), authorizedParty)) {
+			throw new RestaurantNotFoundException(authorizedParty, restaurant.getName());
 		}
 		final var orderedDishesIds = dto.lines().stream().map(OrderLineUpdateDto::dishId).toList();
 		final var orderedDishes = dishRepo.findAllById(orderedDishesIds);
 		if (orderedDishes.stream().anyMatch(d -> !Objects.equals(restaurant.getId(), d.getRestaurant().getId()))) {
 			throw new DishesFromAnotherRestaurantException();
 		}
-		final var customer = auth.getWorksAt().contains(restaurant.getId()) ? dto.customer() : auth.getName();
-		final var order = new Order(restaurant, customer, List.of(), Instant.now(), Instant.ofEpochSecond(dto.askedFor()));
+		if (!Objects.equals(dto.customer(), auth.getName()) && auth.getGrantsFor(restaurant.getId()).contains(RestaurantGrant.UPDATE_ORDERS)) {
+			throw new ForbiddenException();
+		}
+		final var order = new Order(restaurant, dto.customer(), List.of(), Instant.now(), Instant.ofEpochSecond(dto.askedFor()));
 		final var lines = dto.lines().stream().map(lineDto -> {
 			final var dish = orderedDishes
 					.stream()
 					.filter(d -> d.getId().equals(lineDto.dishId()))
 					.findAny()
-					.orElseThrow(() -> new DishNotFoundException(lineDto.dishId(), restaurant.getName(), realmName));
+					.orElseThrow(() -> new DishNotFoundException(lineDto.dishId(), restaurant.getName(), authorizedParty));
 			final var line = new OrderLine(new OrderLine.OrderLineId(order, dish), lineDto.quantity());
 			return line;
 		}).toList();
@@ -123,31 +126,31 @@ public class OrdersController {
 		final var saved = orderRepo.save(order);
 		return ResponseEntity
 				.accepted()
-				.location(URI.create("/realms/%s/restaurants/%d/orders/%d".formatted(realmName, restaurant.getId(), saved.getId())))
+				.location(URI.create("/realms/%s/restaurants/%d/orders/%d".formatted(authorizedParty, restaurant.getId(), saved.getId())))
 				.body(toDto(saved));
 	}
 
 	@GetMapping(path = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional(readOnly = true)
-	@PreAuthorize("worksFor(#restaurantId) || hasPassed(#order)")
+	@PreAuthorize("hasPassed(#order) or on(#restaurantId).isGrantedWith('VIEW_ORDERS')")
 	@Operation(
 			responses = {
 					@ApiResponse(headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the updated order")),
 					@ApiResponse(responseCode = "404", description = "Order not found") })
 	public OrderResponseDto retrieveOrder(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("orderId") @Parameter(schema = @Schema(type = "integer")) Order order)
 			throws OrderNotFoundException {
 		if (!Objects.equals(order.getRestaurant().getId(), restaurantId)) {
-			throw new OrderNotFoundException(order.getId(), restaurantId, realmName);
+			throw new OrderNotFoundException(order.getId(), restaurantId, authorizedParty);
 		}
 		return toDto(order);
 	}
 
 	@PutMapping(path = "/{orderId}", consumes = MediaType.APPLICATION_JSON_VALUE)
 	@Transactional()
-	@PreAuthorize("worksFor(#restaurantId) || hasPassed(#order)")
+	@PreAuthorize("hasPassed(#order) or on(#restaurantId).isGrantedWith('UPDATE_ORDERS')")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", headers = @Header(name = HttpHeaders.LOCATION, description = "Path to the updated order")),
@@ -160,24 +163,27 @@ public class OrdersController {
 							description = "Order not found",
 							content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<Void> updateOrder(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("orderId") @Parameter(schema = @Schema(type = "integer")) Order order,
 			@RequestBody @Valid OrderUpdateDto dto)
 			throws OrderNotFoundException {
 		if (!Objects.equals(order.getRestaurant().getId(), restaurantId)) {
-			throw new OrderNotFoundException(order.getId(), restaurantId, realmName);
+			throw new OrderNotFoundException(order.getId(), restaurantId, authorizedParty);
 		}
 		order.setEngagedFor(InstantEpochSecondConverter.toInstant(dto.engagedFor()));
 		order.setReadyAt(InstantEpochSecondConverter.toInstant(dto.readyAt()));
 		order.setPickedAt(InstantEpochSecondConverter.toInstant(dto.pickedAt()));
 		final var saved = orderRepo.save(order);
-		return ResponseEntity.accepted().location(URI.create("/realms/%s/restaurants/%d/orders/%d".formatted(realmName, restaurantId, saved.getId()))).build();
+		return ResponseEntity
+				.accepted()
+				.location(URI.create("/realms/%s/restaurants/%d/orders/%d".formatted(authorizedParty, restaurantId, saved.getId())))
+				.build();
 	}
 
 	@DeleteMapping(path = "/{orderId}")
 	@Transactional()
-	@PreAuthorize("worksFor(#restaurantId) || hasPassed(#order)")
+	@PreAuthorize("hasPassed(#order) or on(#restaurantId).isGrantedWith('UPDATE_ORDERS')")
 	@Operation(
 			responses = {
 					@ApiResponse(responseCode = "201", description = "Deletion accepted"),
@@ -186,12 +192,12 @@ public class OrdersController {
 							description = "Order not found",
 							content = @Content(schema = @Schema(implementation = ErrorDto.class))) })
 	public ResponseEntity<Void> deleteOrder(
-			@PathVariable("realmName") @NotEmpty String realmName,
+			@PathVariable("authorizedParty") @NotEmpty String authorizedParty,
 			@PathVariable("restaurantId") @NotNull Long restaurantId,
 			@PathVariable("orderId") @Parameter(schema = @Schema(type = "integer")) Order order)
 			throws OrderNotFoundException {
 		if (!Objects.equals(order.getRestaurant().getId(), restaurantId)) {
-			throw new OrderNotFoundException(order.getId(), restaurantId, realmName);
+			throw new OrderNotFoundException(order.getId(), restaurantId, authorizedParty);
 		}
 		order.getRestaurant().getOrders().remove(order);
 		orderRepo.delete(order);
@@ -247,5 +253,11 @@ public class OrdersController {
 		public DishesFromAnotherRestaurantException() {
 			super("Order can't be accpeted: dishes from another restaurant");
 		}
+	}
+
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	static class ForbiddenException extends RuntimeException {
+		private static final long serialVersionUID = -3957883050266139229L;
+
 	}
 }

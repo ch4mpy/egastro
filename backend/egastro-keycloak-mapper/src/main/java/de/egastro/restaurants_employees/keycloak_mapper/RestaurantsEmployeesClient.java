@@ -9,7 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
-import de.egastro.training.oidc.dtos.users.UserEmployersDto;
+import de.egastro.training.oidc.dtos.users.UserGrantsDto;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -29,16 +29,11 @@ public class RestaurantsEmployeesClient {
 		this.usersClient = RestClient.builder().baseUrl(config.usersApiBaseUri()).build();
 	}
 
-	public Optional<UserEmployersDto> getUserEmployments(String realm, String username) {
+	public Optional<UserGrantsDto> getUserGrants(String realm, String username) {
 		try {
 			return Optional
 					.ofNullable(
-							usersClient
-									.get()
-									.uri("/{realm}/{username}/employers", realm, username)
-									.headers(this::setBearer)
-									.retrieve()
-									.body(UserEmployersDto.class));
+							usersClient.get().uri("/{realm}/{username}/grants", realm, username).headers(this::setBearer).retrieve().body(UserGrantsDto.class));
 		} catch (final Exception e) {
 			log.error("Failed to get UserEmployersDto: {}", e);
 			return Optional.empty();

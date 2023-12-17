@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sushibach/bff_demo_home_page.dart';
@@ -6,7 +9,12 @@ import 'package:sushibach/src/network.service.dart';
 import 'package:sushibach/src/user.model.dart';
 import 'package:http/http.dart' as http;
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  ByteData data = await PlatformAssetBundle().load('assets/ca/self_signed.pem');
+  SecurityContext.defaultContext.setTrustedCertificatesBytes(data.buffer.asUint8List());
+
   runApp(ChangeNotifierProvider(
     create: (context) => UserModel(),
     child: const MainApp(),
@@ -20,7 +28,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       routerConfig: _router,
-      title: 'BFF Demo With Flutter Frontend',
+      title: 'Sushi Bach',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -52,7 +60,7 @@ final _router = GoRouter(
           },
         ),
         GoRoute(
-          path: 'ui',
+          path: 'sushibach',
           builder: (BuildContext context, GoRouterState state) {
             return const BffDemoHomePage();
           },

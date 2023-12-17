@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-const bffScheme = 'http';
+const bffScheme = 'https';
 const bffHost = '192.168.1.182';
 const bffPort = 7080;
 const bffUri = '$bffScheme://$bffHost:$bffPort';

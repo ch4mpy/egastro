@@ -96,7 +96,7 @@ class UserModel extends ChangeNotifier {
     if (response.statusCode == 200) {
       final body =
           (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
-      _loginOptions = body.map((e) => e['href']);
+      _loginOptions = body.where((Map<String, dynamic> e) => e.keys.contains('label') && e.values.contains('sushibach')).map((e) => e['href']);
     } else {
       _loginOptions = List.empty();
     }

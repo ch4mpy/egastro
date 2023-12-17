@@ -21,24 +21,19 @@
       "description": "claim to use as username"
     },
     {
-      "name": "master-issuer",
+      "name": "issuer",
       "type": "java.net.URI",
-      "description": "Value of the issuer claim in access tokens from the master realm"
+      "description": "Value of the issuer claim in access tokens"
     },
     {
-      "name": "burger-house-secret",
+      "name": "admin-console-secret",
       "type": "java.lang.String",
       "description": "Secret for the OAuth2 client"
     },
     {
-      "name": "sushibach-secret",
+      "name": "oauth2-clients-secret",
       "type": "java.lang.String",
-      "description": "Secret for the OAuth2 client"
-    },
-    {
-      "name": "admin-client-secret",
-      "type": "java.lang.String",
-      "description": "Secret for the OAuth2 client"
+      "description": "Secret for the OAuth2 clients"
     },
     {
       "name": "gateway-uri",
@@ -49,11 +44,6 @@
       "name": "management-console-api-uri",
       "type": "java.net.URI",
       "description": "Base URI for management console API"
-    },
-    {
-      "name": "ui-host",
-      "type": "java.net.URI",
-      "description": "Base URI for the UI"
     }
   ]
 }

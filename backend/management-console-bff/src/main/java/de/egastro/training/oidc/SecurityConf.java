@@ -1,7 +1,9 @@
 package de.egastro.training.oidc;
 
+import java.net.URI;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
@@ -10,6 +12,7 @@ import org.springframework.security.oauth2.client.web.server.ServerOAuth2Authori
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import reactor.core.publisher.Mono;
 
@@ -23,9 +26,13 @@ public class SecurityConf {
 		static final String KC_IDP_HINT_PARAM = "kc_idp_hint";
 
 		private final DefaultServerOAuth2AuthorizationRequestResolver delegate;
+		private final URI gatewayUri;
 
-		public KcIdpHintAwareOAuth2AuthorizationRequestResolver(ReactiveClientRegistrationRepository clientRegistrationRepository) {
+		public KcIdpHintAwareOAuth2AuthorizationRequestResolver(
+				ReactiveClientRegistrationRepository clientRegistrationRepository,
+				@Value("${gateway-uri}") URI gatewayUri) {
 			this.delegate = new DefaultServerOAuth2AuthorizationRequestResolver(clientRegistrationRepository);
+			this.gatewayUri = gatewayUri;
 		}
 
 		@Override
@@ -34,7 +41,14 @@ public class SecurityConf {
 				Optional
 						.ofNullable(exchange.getRequest().getHeaders().get(KC_IDP_HINT_HEADER))
 						.ifPresent(hint -> request.getAdditionalParameters().put(KC_IDP_HINT_PARAM, hint));
-				return request;
+
+				final var uri = UriComponentsBuilder.fromUriString(request.getAuthorizationRequestUri());
+				uri.scheme(gatewayUri.getScheme());
+				uri.host(gatewayUri.getHost());
+				uri.port(gatewayUri.getPort());
+				final var builder = OAuth2AuthorizationRequest.from(request);
+				builder.authorizationRequestUri(uri.build().toUriString());
+				return builder.build();
 			});
 		}
 

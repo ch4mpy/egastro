@@ -1,11 +1,13 @@
 package de.egastro.training.oidc.security;
 
 import java.util.Objects;
+import java.util.Set;
 
 import com.c4_soft.springaddons.security.oidc.spring.C4MethodSecurityExpressionRoot;
 
 import de.egastro.training.oidc.domain.Order;
 import de.egastro.training.oidc.domain.Restaurant;
+import de.egastro.training.oidc.domain.RestaurantGrant;
 
 /**
  * Custom DSL for Spring Security SpEL
@@ -19,36 +21,25 @@ final class EGastroMethodSecurityExpressionRoot extends C4MethodSecurityExpressi
 	}
 
 	public boolean worksFor(Restaurant restaurant) {
-		return restaurant.getEmployees().contains(getAuthentication().getName()) || restaurant.getManagers().contains(getAuthentication().getName());
-		/*
-		 * alternative impl:
-		 *
-		 * if(getAuthentication() instanceof EGastroAuthentication egauth) { return egauth.getWorksAt().contains(restaurant.getId()) ||
-		 * egauth.getManages().contains(restaurant.getId()); } return false;
-		 */
+		return worksFor(restaurant.getId());
 	}
 
 	public boolean worksFor(Long restaurantId) {
 		if (getAuthentication() instanceof EGastroAuthentication egauth) {
-			return egauth.getWorksAt().contains(restaurantId) || egauth.getManages().contains(restaurantId);
+			return egauth.getGrantsFor(restaurantId).size() > 0;
 		}
 		return false;
 	}
 
-	public boolean manages(Restaurant restaurant) {
-		return restaurant.getManagers().contains(getAuthentication().getName());
-		/*
-		 * alternative impl:
-		 *
-		 * if(getAuthentication() instanceof EGastroAuthentication egauth) { return egauth.getManages().contains(restaurant.getId()); } return false;
-		 */
+	public RestaurantPermissions on(Restaurant restaurant) {
+		return on(restaurant.getId());
 	}
 
-	public boolean manages(Long restaurantId) {
+	public RestaurantPermissions on(Long restaurantId) {
 		if (getAuthentication() instanceof EGastroAuthentication egauth) {
-			return egauth.getManages().contains(restaurantId);
+			return new RestaurantPermissions(egauth.getGrantsFor(restaurantId));
 		}
-		return false;
+		return RestaurantPermissions.EMPTY;
 	}
 
 	public boolean hasPassed(Order order) {
@@ -67,5 +58,19 @@ final class EGastroMethodSecurityExpressionRoot extends C4MethodSecurityExpressi
 			return Objects.equals(realm, egauth.getRealm());
 		}
 		return false;
+	}
+
+	public static class RestaurantPermissions {
+		private static final RestaurantPermissions EMPTY = new RestaurantPermissions(Set.of());
+
+		private final Set<RestaurantGrant> grants;
+
+		public RestaurantPermissions(Set<RestaurantGrant> grants) {
+			this.grants = grants;
+		}
+
+		public boolean isGrantedWith(String grant) {
+			return grants.contains(RestaurantGrant.valueOf(grant));
+		}
 	}
 }
