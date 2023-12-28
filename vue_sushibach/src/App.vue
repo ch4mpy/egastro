@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, ref, type Ref } from 'vue';
+import { inject, onMounted, ref, type Ref } from 'vue';
 import { RouterView } from 'vue-router';
 import { useCookies } from "vue3-cookies";
 import { UserService, type LoginOptionDto } from './user.service';
@@ -15,34 +15,41 @@ const oauth2ClientRegistration = 'sushibach'
 // inject the singleton defined in main.js
 const user = inject('UserService') as UserService;
 
-const iframeSrc = ref("")
+// stores the URI used to initiate an authorization-code flow on the BFF
+const bffAuthorizationInitiationUri = ref()
 
-async function login() {
+const iframeSrc = ref()
+const iframe = ref()
+const isLoginModalDisplayed = ref(false)
+
+onMounted(async () => {
+  // Fetch login options from the BFF
+  loginOptions.value = await user.loginOptions();
+
+  // Select the login option for current frontend client registration
   const href = loginOptions.value.filter(opt => opt.label === oauth2ClientRegistration).map(loginOpt => loginOpt.href) || [];
   if (href.length) {
-    iframeSrc.value = href[0];
-    /*
-    const preAuthorizationResponse = await fetch(href[0], {
-      method: 'GET',
-      headers: {
-      }
-    });
-    const authorizationHref = preAuthorizationResponse.headers.get('location') ?? ''
-
-    iframeSrc.value = authorizationHref;
-    */
+    bffAuthorizationInitiationUri.value = `${href[0]}?post_login_success_uri=/sushibach`
   }
+  // Initial login iframe state is always "hidden"
+  isLoginModalDisplayed.value = false
+
+  // Force user service refresh each time the login iframe content changes
+  iframe.value.onload = () => {
+    user.refresh()
+  }
+})
+
+async function login() {
+  // When login button is clicked, follow the authorization-code redirects again to ensure that the session state is fresh
+  iframeSrc.value = bffAuthorizationInitiationUri.value;
+  // Display the iframe
+  isLoginModalDisplayed.value = true
 }
 
 function logout(xsrfToken: string) {
   user.logout(xsrfToken)
 }
-
-onMounted(async () => {
-  loginOptions.value = await user.loginOptions();
-})
-
-
 </script>
 
 <template>
@@ -56,14 +63,18 @@ onMounted(async () => {
         @click="logout(cookies.get('XSRF-TOKEN'))">Logout</button>
       <button v-if="!user.current.value.isAuthenticated" @click="login">Login</button>
     </div>
+    
     <div>
       <RouterView />
     </div>
   </div>
-  <div class="modal-overlay" v-if="iframeSrc" @click.self="iframeSrc = ''">
+
+  <!-- Template for the the login iframe -->
+  <div class="modal-overlay" v-show="isLoginModalDisplayed && !user.current.value.isAuthenticated"
+    @click.self="isLoginModalDisplayed = false">
     <div class="modal">
-      <iframe :src="iframeSrc" frameborder="0"></iframe>
-      <button class="close-button" @click="iframeSrc = ''">Discard</button>
+      <iframe :src="iframeSrc" frameborder="0" ref="iframe"></iframe>
+      <button class="close-button" @click="isLoginModalDisplayed = false">Discard</button>
     </div>
   </div>
 </template>

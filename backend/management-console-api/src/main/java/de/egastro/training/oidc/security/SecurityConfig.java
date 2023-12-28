@@ -11,7 +11,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.core.GrantedAuthority;
 
 import com.c4_soft.springaddons.security.oidc.OpenidClaimSet;
-import com.c4_soft.springaddons.security.oidc.spring.C4MethodSecurityExpressionHandler;
+import com.c4_soft.springaddons.security.oidc.spring.SpringAddonsMethodSecurityExpressionHandler;
 import com.c4_soft.springaddons.security.oidc.starter.properties.SpringAddonsOidcProperties;
 import com.c4_soft.springaddons.security.oidc.starter.synchronised.resourceserver.JwtAbstractAuthenticationTokenConverter;
 
@@ -32,6 +32,6 @@ public class SecurityConfig {
 
 	@Bean
 	MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
-		return new C4MethodSecurityExpressionHandler(EGastroMethodSecurityExpressionRoot::new);
+		return new SpringAddonsMethodSecurityExpressionHandler(EGastroMethodSecurityExpressionRoot::new);
 	}
 }

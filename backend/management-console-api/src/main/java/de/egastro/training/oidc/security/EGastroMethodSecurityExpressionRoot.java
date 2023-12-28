@@ -3,7 +3,7 @@ package de.egastro.training.oidc.security;
 import java.util.Objects;
 import java.util.Set;
 
-import com.c4_soft.springaddons.security.oidc.spring.C4MethodSecurityExpressionRoot;
+import com.c4_soft.springaddons.security.oidc.spring.SpringAddonsMethodSecurityExpressionRoot;
 
 import de.egastro.training.oidc.domain.Order;
 import de.egastro.training.oidc.domain.Restaurant;
@@ -14,7 +14,7 @@ import de.egastro.training.oidc.domain.RestaurantGrant;
  *
  * @author Jérôme Wacongne &lt;ch4mp#64;c4-soft.com&gt;
  */
-final class EGastroMethodSecurityExpressionRoot extends C4MethodSecurityExpressionRoot {
+final class EGastroMethodSecurityExpressionRoot extends SpringAddonsMethodSecurityExpressionRoot {
 
 	public boolean is(String username) {
 		return Objects.equals(username, getAuthentication().getName());

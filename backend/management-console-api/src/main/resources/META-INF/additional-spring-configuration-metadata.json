@@ -11,9 +11,19 @@
       "description": "Hostname for this server (can be useful to switch to something else than localhost when debugging mobile device)"
     },
     {
-      "name": "keycloak-host",
+      "name": "egastro-issuer",
       "type": "java.net.URI",
       "description": "Base URI for the authorization server"
+    },
+    {
+      "name": "master-issuer",
+      "type": "java.net.URI",
+      "description": "Base URI for the authorization server"
+    },
+    {
+      "name": "admin-api",
+      "type": "java.net.URI",
+      "description": "Base URI for the Keycloak admin API"
     },
     {
       "name": "username-claim",

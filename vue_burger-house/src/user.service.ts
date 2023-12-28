@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-const bff = 'https://192.168.1.182:7080'
+const backend = 'https://192.168.1.182:7080'
 
 export interface LoginOptionDto {
   label: string
@@ -19,12 +19,18 @@ export class UserService {
     if (this.refreshIntervalId) {
       clearInterval(this.refreshIntervalId)
     }
-    const response = await fetch(`${bff}/bff/v1/users/me`)
+    const response = await fetch(`${backend}/bff/v1/users/me`)
     const body = await response.json()
-    this.current.value = body.name
-      ? new User(body.name, body.realm, body.roles || [], body.manages || [], body.worksFor || [])
+    this.current.value = body.user?.subject
+      ? new User(
+          body.user.username,
+          body.user.subject,
+          body.user.email || '',
+          body.user.realm || '',
+          body.user.roles || []
+        )
       : User.ANONYMOUS
-    if (body.name) {
+    if (body.user?.subject) {
       const now = Date.now()
       const delay = (1000 * body.exp - now) * 0.8
       if (delay > 2000) {
@@ -34,18 +40,25 @@ export class UserService {
     return this.current.value
   }
 
-  login(loginUri: string) {
-    window.open(
-      loginUri,
-      'Login',
-      `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=800, height=600`
-    )
+  login(loginUri: string, isSameTab: boolean) {
+    if (isSameTab) {
+      window.location.href = loginUri
+    } else {
+      window.open(
+        loginUri,
+        'Login',
+        `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, width=800, height=600`
+      )
+    }
   }
 
   async logout(xsrfToken: string) {
-    const response = await fetch(`${bff}/logout`, {
+    const response = await fetch(`${backend}/logout`, {
       method: 'POST',
-      headers: { 'X-XSRF-TOKEN': xsrfToken }
+      headers: {
+        'X-XSRF-TOKEN': xsrfToken,
+        'X-POST-LOGOUT-SUCCESS-URI': `${backend}/burger-house`
+      }
     })
     const location = response.headers.get('Location')
     if (location) {
@@ -54,24 +67,24 @@ export class UserService {
   }
 
   async loginOptions(): Promise<Array<LoginOptionDto>> {
-    const response = await fetch(`${bff}/login-options`)
+    const response = await fetch(`${backend}/login-options`)
     return await response.json()
   }
 }
 
 export class User {
-  static readonly ANONYMOUS = new User('', '', [], [], [])
+  static readonly ANONYMOUS = new User('', '', '', '', [])
 
   constructor(
-    readonly name: string,
+    readonly username: string,
+    readonly subject: string,
+    readonly email: string,
     readonly realm: string,
-    readonly roles: string[],
-    readonly manages: number[],
-    readonly worksFor: number[]
+    readonly roles: string[]
   ) {}
 
   get isAuthenticated(): boolean {
-    return !!this.name
+    return !!this.subject
   }
 
   hasAnyRole(...roles: string[]): boolean {

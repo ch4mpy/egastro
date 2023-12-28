@@ -29,3 +29,13 @@ replay_pid*
 
 # Eclipse DBeaver
 **/.dbeaver
+
+# SSL certificates
+keycloak/ssl/*
+
+# Java projects
+**/target/
+**/.project
+**/.settings/
+**/.factorypath
+**/.classpath

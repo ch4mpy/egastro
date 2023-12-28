@@ -13,6 +13,10 @@
 	<packaging>jar</packaging>
 	<name>egastro-keycloak-mapper</name>
 	<description>Keycloak mapper to add priviledged users relations to restaurants (which he manages or works at)</description>
+	
+	<properties>
+		<java.version>17</java.version>
+	</properties>
 
 	<dependencies>
 		<dependency>

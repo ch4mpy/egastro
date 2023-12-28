@@ -1,0 +1,81 @@
+scheme: http
+hostname: localhost
+
+server:
+  port: 7080
+  shutdown: graceful
+  ssl:
+    enabled: false
+
+spring:
+  config:
+    import:
+    - optional:configtree:/workspace/config/
+    - optional:configtree:/workspace/secret/
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  cloud:
+    gateway:
+      default-filters:
+      - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      routes:
+      # Serve the Vue 3 frontends through the gateway
+      - id: admin-console
+        uri: ${scheme}://${hostname}:4200
+        predicates:
+        - Path=/admin-console/**
+      - id: sushibach
+        uri: ${scheme}://${hostname}:4201
+        predicates:
+        - Path=/sushibach/**
+      - id: burger-house
+        uri: ${scheme}://${hostname}:4202
+        predicates:
+        - Path=/burger-house/**
+      
+      # Proxy authorization-server
+      - id: keycloak
+        uri: https://${hostname}:8443
+        predicates:
+        - Path=/auth/**
+      
+      # Proxy BFF
+      - id: bff
+        uri: ${scheme}://${hostname}:7081
+        predicates:
+        - Path=/bff/**,/login/**,/oauth2/**,/logout,/login-options,/client-registrations/**
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    org:
+      springframework:
+        boot: INFO
+        security: TRACE
+        web: TRACE
+    
+---
+spring:
+  config:
+    activate:
+      on-profile: ssl
+server:
+  ssl:
+    enabled: true
+
+scheme: https

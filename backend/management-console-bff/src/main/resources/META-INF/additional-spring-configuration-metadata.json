@@ -11,7 +11,7 @@
       "description": "Hostname for this server (can be useful to switch to something else than localhost when debugging mobile device)"
     },
     {
-      "name": "keycloak-host",
+      "name": "ingress-host",
       "type": "java.net.URI",
       "description": "Base URI for the authorization server"
     },
@@ -21,12 +21,17 @@
       "description": "claim to use as username"
     },
     {
-      "name": "issuer",
+      "name": "master-issuer",
       "type": "java.net.URI",
       "description": "Value of the issuer claim in access tokens"
     },
     {
-      "name": "admin-console-secret",
+      "name": "egastro-issuer",
+      "type": "java.net.URI",
+      "description": "Value of the issuer claim in access tokens"
+    },
+    {
+      "name": "admin-client-secret",
       "type": "java.lang.String",
       "description": "Secret for the OAuth2 client"
     },
@@ -34,11 +39,6 @@
       "name": "oauth2-clients-secret",
       "type": "java.lang.String",
       "description": "Secret for the OAuth2 clients"
-    },
-    {
-      "name": "gateway-uri",
-      "type": "java.net.URI",
-      "description": "Base URI for this server"
     },
     {
       "name": "management-console-api-uri",

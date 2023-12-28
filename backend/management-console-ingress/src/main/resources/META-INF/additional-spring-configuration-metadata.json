@@ -1,0 +1,14 @@
+{
+  "properties": [
+    {
+      "name": "scheme",
+      "type": "java.lang.String",
+      "description": "Scheme used for this server"
+    },
+    {
+      "name": "hostname",
+      "type": "java.lang.String",
+      "description": "Hostname for this server (can be useful to switch to something else than localhost when debugging mobile device)"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+name: keycloak
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    command: [ " --verbose start-dev" ]
+    secrets:
+      - source: server_crt
+        target: /etc/x509/https/tls.crt
+        uid: '103'
+        gid: '103'
+        mode: 0440
+      - source: server_key
+        target: /etc/x509/https/tls.key
+        uid: '103'
+        gid: '103'
+        mode: 0440
+    volumes:
+      - ./providers/apple-social-identity-provider-1.0.2.jar:/opt/keycloak/providers/apple-social-identity-provider-1.0.2.jar
+      - ../backend/egastro-keycloak-mapper/target/egastro-keycloak-mapper-0.0.1-SNAPSHOT.jar:/opt/keycloak/providers/egastro-keycloak-mapper-0.0.1-SNAPSHOT.jar
+      - ./providers/keycloak-magic-link-0.23-SNAPSHOT.jar:/opt/keycloak/providers/keycloak-magic-link-0.23-SNAPSHOT.jar
+      - ./themes/:/opt/keycloak/themes/
+      - type: volume
+        source: keycloak-local
+        target: /opt/keycloak/data
+    ports:
+      - target: 7080
+        published: 8443
+        protocol: tcp
+        mode: host
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=change-me
+      #- KC_DB=postgres
+      #- KC_DB_URL=jdbc:postgresql://192.168.1.182/keycloak-docker
+      #- KC_DB_USERNAME=keycloak-docker
+      #- KC_DB_PASSWORD=change-me
+      - KC_HOSTNAME_ADMIN_URL=https://192.168.1.182:7080/auth
+      - KC_HOSTNAME_URL=https://192.168.1.182:7080/auth
+      - KC_HTTP_RELATIVE_PATH=/auth
+      #- KC_LOG_LEVEL=DEBUG
+      - KC_HTTPS_CERTIFICATE_FILE=/etc/x509/https/tls.crt
+      - KC_HTTPS_CERTIFICATE_KEY_FILE=/etc/x509/https/tls.key
+      - KC_HTTPS_PORT=7080
+    container_name: keycloak
+
+volumes:
+  keycloak-local:
+      name: keycloak-local
+
+secrets:
+  server_crt:
+    file: ./ssl/self_signed.crt
+  server_key:
+    file: ./ssl/req_key.pem

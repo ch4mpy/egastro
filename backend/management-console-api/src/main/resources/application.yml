@@ -1,6 +1,8 @@
 scheme: http
 hostname: localhost
-keycloak-host: https://${hostname}:8443
+egastro-issuer: ${scheme}://${hostname}:7080/auth/realms/egastro
+master-issuer: ${scheme}://${hostname}:7080/auth/realms/master
+admin-api: ${scheme}://${hostname}:7080/auth/admin
 username-claim: sub
 admin-client-secret: change-me
 
@@ -29,9 +31,9 @@ spring:
       client:
         config:
           keycloak-admin-realm:
-            url: ${keycloak-host}/admin/realms
+            url: ${admin-api}/realms
           keycloak-admin-user:
-            url: ${keycloak-host}/admin/realms
+            url: ${admin-api}/realms
       oauth2:
         enabled: true
         clientRegistrationId: egastro-admin-client
@@ -40,7 +42,7 @@ spring:
       client:
         provider:
           master:
-            issuer-uri: ${keycloak-host}/realms/master
+            issuer-uri: ${master-issuer}
         registration:
           egastro-admin-client:
             provider: master
@@ -56,15 +58,11 @@ com:
     springaddons:
       oidc:
         ops:
-        - iss: ${keycloak-host}/realms/master
+        - iss: ${master-issuer}
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
-        - iss: ${keycloak-host}/realms/business
-          username-claim: ${username-claim}
-          authorities:
-          - path: $.realm_access.roles
-        - iss: ${keycloak-host}/realms/consumer
+        - iss: ${egastro-issuer}
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles

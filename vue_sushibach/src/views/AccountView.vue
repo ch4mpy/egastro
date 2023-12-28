@@ -8,7 +8,7 @@ const user = inject('UserService') as UserService;
 
 <template>
   <div class="account">
-    <h1>{{ user.current.value.name }}</h1>
+    <h1>{{ user.current.value.username }}</h1>
     
   </div>
 </template>

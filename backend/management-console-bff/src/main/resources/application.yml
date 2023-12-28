@@ -1,14 +1,15 @@
 scheme: http
 hostname: localhost
-keycloak-host: https://${hostname}:8443
+ingress-host: ${scheme}://${hostname}:7080
+egastro-issuer: ${ingress-host}/auth/realms/egastro
+master-issuer: ${ingress-host}/auth/realms/master
 username-claim: sub
 oauth2-clients-secret: change-me
 
-gateway-uri: ${scheme}://${hostname}:${server.port}
 management-console-api-uri: ${scheme}://${hostname}:7084
 
 server:
-  port: 7080
+  port: 7081
   shutdown: graceful
   ssl:
     enabled: false
@@ -18,44 +19,39 @@ spring:
     import:
     - optional:configtree:/workspace/config/
     - optional:configtree:/workspace/secret/
+  jpa:
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+    show-sql: false
   lifecycle:
     timeout-per-shutdown-phase: 30s
   security:
     oauth2:
       client:
         provider:
-          business:
-            issuer-uri: ${keycloak-host}/realms/business
+          master:
+            issuer-uri: ${master-issuer}
             user-name-attribute: ${username-claim}
-          consumer:
-            issuer-uri: ${keycloak-host}/realms/consumer
+          egastro:
+            issuer-uri: ${egastro-issuer}
             user-name-attribute: ${username-claim}
         registration:
+          egastro-admin-client:
+            provider: master
+            client-id: egastro-admin-client
+            client-secret: ${admin-client-secret}
+            authorization-grant-type: client_credentials
+            scope:
+            - openid
+            - offline_access
           admin-console:
-            provider: business
+            provider: egastro
             client-id: admin-console
             client-secret: ${oauth2-clients-secret}
+            client-authentication-method: client_secret_basic
             authorization-grant-type: authorization_code
-            scope:
-            - openid
-            - profile
-            - email
-            - offline_access
-          sushibach:
-            provider: business
-            client-id: sushibach
-            client-secret: ${oauth2-clients-secret}
-            authorization-grant-type: authorization_code
-            scope:
-            - openid
-            - profile
-            - email
-            - offline_access
-          burger-house:
-            provider: business
-            client-id: burger-house
-            client-secret: ${oauth2-clients-secret}
-            authorization-grant-type: authorization_code
+            redirect-uri: ${ingress-host}/login/oauth2/code/admin-console
             scope:
             - openid
             - profile
@@ -63,47 +59,13 @@ spring:
             - offline_access
   cloud:
     gateway:
-      default-filters:
-      - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       routes:
-      # Redirection from / to /ui/
-      - id: home
-        uri: ${gateway-uri}
-        predicates:
-        - Path=/
-        filters:
-        - RedirectTo=301,${gateway-uri}/admin-console/
-      
-      # Serve the Vue 3 frontends through the gateway
-      - id: admin-console
-        uri: ${scheme}://${hostname}:4200
-        predicates:
-        - Path=/admin-console/**
-      - id: sushibach
-        uri: ${scheme}://${hostname}:4201
-        predicates:
-        - Path=/sushibach/**
-      - id: burger-house
-        uri: ${scheme}://${hostname}:4202
-        predicates:
-        - Path=/burger-house/**
-      
-      # Proxy authorization-server
-      - id: keycloak
-        uri: ${keycloak-host}
-        predicates:
-        - Path=/realms/**
-      - id: keycloak-resources
-        uri: ${keycloak-host}
-        predicates:
-        - Path=/resources/2i2l7/**
-      
-      # Access the API with BFF pattern
       - id: bff
         uri: ${management-console-api-uri}
         predicates:
         - Path=/bff/v1/**
         filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
         - TokenRelay=
         - SaveSession
         - StripPrefix=2
@@ -114,34 +76,34 @@ com:
       oidc:
         # Global OAuth2 configuration
         ops:
-        - iss: ${keycloak-host}/realms/master
+        - iss: ${egastro-issuer}
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
-        - iss: ${keycloak-host}/realms/business
-          username-claim: ${username-claim}
-          authorities:
-          - path: $.realm_access.roles
-        - iss: ${keycloak-host}/realms/consumer
+        - iss: ${master-issuer}
           username-claim: ${username-claim}
           authorities:
           - path: $.realm_access.roles
         client:
-          client-uri: ${gateway-uri}
+          client-uri: ${ingress-host}
           security-matchers:
           - /bff/**
           - /login/**
           - /logout
           - /oauth2/**
+          - /client-registrations/**
           permit-all:
           - /bff/**
           - /login/**
           - /oauth2/**
           csrf: cookie-accessible-from-js
+          post-login-redirect-host: ${ingress-host}
+          post-login-redirect-path: /sushibach
+          post-logout-redirect-host: ${ingress-host}
+          post-logout-redirect-path: /sushibach
           oauth2-redirections:
             rp-initiated-logout: ACCEPTED
           cors:
-          - allowed-origin-patterns: ${ui-host}
         # OAuth2 resource server configuration
         resourceserver:
           permit-all:
@@ -150,15 +112,13 @@ com:
           - /admin-console/**
           - /sushibach/**
           - /burger-house/**
-          - /realms/**
-          - /resources/2i2l7/**
+          - /auth/**
           - /v3/api-docs/**
           - /swagger-ui/**
           - /actuator/health/readiness
           - /actuator/health/liveness
           - /.well-known/**
           cors:
-          - allowed-origin-patterns: ${ui-host}
 
 management:
   endpoint:
@@ -180,9 +140,72 @@ logging:
     root: INFO
     org:
       springframework:
-        security: TRACE
         boot: INFO
-    
+        security: TRACE
+        web: TRACE
+
+egastro:
+  keycloak:
+    client-service:
+      admin-api-uri: ${ingress-host}/auth/admin
+      web-client-registration: egastro-admin-client
+      default-secret: 
+      realm: egastro
+      provider: egastro
+      redirectUris:
+      - https://bravo-ch4mp.local:7080/*
+      - https://bravo-ch4mp:7080/*
+      - https://192.168.1.182:7080/*
+      - https://localhost:7080/*
+      - https://mc-ch4mp.local:7080/*
+      - https://127.0.0.1:7080/*
+      - https://10.0.2.2:7080/*
+      - https://mc-ch4mp:7080/*
+      - http://bravo-ch4mp.local:7080/*
+      - http://bravo-ch4mp:7080/*
+      - http://192.168.1.182:7080/*
+      - http://localhost:7080/*
+      - http://mc-ch4mp.local:7080/*
+      - http://127.0.0.1:7080/*
+      - http://10.0.2.2:7080/*
+      - http://mc-ch4mp:7080/*
+
+---
+spring:
+  config:
+    activate:
+      on-profile: h2
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:egastro
+    username: sa
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgresql
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/egastro
+    username: egastro
+    password: change-me
+
+---
+spring:
+  config:
+    activate:
+      on-profile: mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/egastro
+    username: egastro
+    password: change-me
+
 ---
 spring:
   config:

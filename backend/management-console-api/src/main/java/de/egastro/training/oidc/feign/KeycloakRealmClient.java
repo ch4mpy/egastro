@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import de.egastro.training.oidc.dtos.keycloak.ClientRepresentation;
 import de.egastro.training.oidc.dtos.keycloak.RealmRepresentation;
 import de.egastro.training.oidc.dtos.keycloak.RoleRepresentation;
 
@@ -20,9 +19,6 @@ public interface KeycloakRealmClient {
 
 	@PostMapping
 	void createRealm(@RequestBody RealmRepresentation realm);
-
-	@PostMapping("/{realmName}/clients")
-	void createClient(@PathVariable("realmName") String realmName, @RequestBody ClientRepresentation client);
 
 	@PostMapping("/{realmName}/roles")
 	void createRole(@PathVariable("realmName") String realmName, @RequestBody RoleRepresentation role);
