@@ -26,7 +26,7 @@ public class EGastroAuthentication extends OAuthentication<OpenidClaimSet> {
 
 	public EGastroAuthentication(OpenidClaimSet claims, Collection<? extends GrantedAuthority> authorities, String tokenString) {
 		super(claims, authorities, tokenString);
-		final Map<Long, List<String>> grantStrings = this.getAttributes().containsKey("grantsByRestaurantId")
+		final Map<String, List<String>> grantStrings = this.getAttributes().containsKey("grantsByRestaurantId")
 				? this.getAttributes().getClaim("grantsByRestaurantId")
 				: Map.of();
 		this.grants = Collections
@@ -37,7 +37,7 @@ public class EGastroAuthentication extends OAuthentication<OpenidClaimSet> {
 								.map(
 										e -> Map
 												.entry(
-														e.getKey(),
+														Long.valueOf(e.getKey()),
 														Collections
 																.unmodifiableSet(
 																		e.getValue().stream().map(RestaurantGrant::valueOf).collect(Collectors.toSet()))))

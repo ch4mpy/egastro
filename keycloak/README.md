@@ -79,7 +79,7 @@ Go to `Authentication` -> `Flows` and create a new flow named `Browser magic lin
 - on the right of the `Magic Link Forms` sub-flow, `+` -> `Add step` -> `Magic Link` and set it as `Required`
 - in the settings of the `Magic Link` step in the `Magic Link Forms` sub-flow, only keep `Force create user` enabled
 
-Note the new flow UUID in the browser nav-bar and update the value for the `browser` entry in `authenticationFlowBindingOverrides` of the `ClientRepresentation` constructor (BFF module). This will set this "Magic Link" flow as default for the newly created clients using Vue admin-console frontend.
+Note the new flow UUID in the browser nav-bar and update the value for the `egastro.keycloak.client-service.magic-link-flow-id` property in the BFF launch configuration. This will set this "Magic Link" flow as default for the newly created clients using Vue admin-console frontend.
 
 ## 2. Roles in Keycloak
 ### 2.1. `master` realm
@@ -108,14 +108,14 @@ using `+` as value for `Valid post logout redirect URIs` and `Web origins` is ju
 - in `Service accounts roles`, click `Assign role` to grant `KEYCLOAK_MAPPER`
 
 ### 3.2. `egastro` realm
-#### 3.2.1. egastro
+#### 3.2.1. `admin-console`
 - `Client authentication` enabled
 - `Authentication flow` select only `Standard flow`
-- you may set all the network interfaces for your local BFF as `Root URL` (`https://localhost:7080`, `https://{hostname}:7080`, `https://127.0.0.1:7080`, `https://10.0.2.2:7080`, `https://{static-ip-address}:7080`, as well as the `http` equivalents)
-- set `Valid redirect URIs`, `Valid post logout redirect URIs` and `Web origins`
+- you may set all the network interfaces for your local BFF as `Valid redirect URIs` (one for each of `https://localhost:7080`, `https://{hostname}:7080`, `https://127.0.0.1:7080`, `https://10.0.2.2:7080`, `https://{static-ip-address}:7080`, as well as the `http` equivalents)
+- set `Valid post logout redirect URIs` and `Web origins` values to `+`
 
 
-#### 3.2.2. egastro-admin-client
+#### 3.2.2. `egastro-admin-client`
 - `Client authentication` enabled
 - `Authentication flow` select only `Service accounts roles`
 - in `Service accounts roles`, click `Assign role`, in the first combo, select `Filter by clients`, the set `client` as filter and select:
@@ -127,8 +127,6 @@ using `+` as value for `Valid post logout redirect URIs` and `Web origins` is ju
 The this "service account" will be used by a `@Service` on the resource server to dynamically declare new OAuth2 clients in Keycloak and add registrations to the BFF.
 
 An other option would be to grant this client roles to a few "admin" users and to use the access token from the registration with `authorization_code` grant type. But, as it requires to set more users with Keycloak internal roles, we'll prefer to use `@PreAuthorize("hasAuthority('EGASTRO_MANAGER')")` as security expression and a registration with `client_credentials` to populate the authorization header of requests sent from the Spring backend with a REST client.
-
-#### 3.2.3. admin-console
 
 #### 3.2.4. additional test clients
 We have a choice for the clients used by the BFF to login users from B2C frontends: use the admin-console Vue application or declare it both in Keycloak and BFF application properties. Here are the OAuth2 clients that we'll use in frontends:
@@ -184,11 +182,13 @@ From the `egastro/backend` folder, run `bash mvnw install` to build the all back
 
 Copy the output (`egastro/backend/egastro-keycloak-mapper/target/egastro-keycloak-mapper-0.0.1-SNAPSHOT.jar`) to `keycloak-21.1.1/providers` and restart the server.
 
-### 5.4. Configuring the mapper for the `egastro-bff` client
-To add the new private claims delivered to the `egastro-bff` client when users log-in with `authorization_code` flow, in the console:
-- open the `egastro-bff` client details
+### 5.4. Configuring the mapper for the `admin-console` client
+To add the new private claims delivered to the `admin-console` client when users log-in with `authorization_code` flow, in the console:
+- open the `admin-console` client details
 - browse to the `Clients scopes` tab
-- click `egastro-bff-dedicated`
-- click `Add mapper` and then `By configuration`
-- browse to `User employments mapper`
+- click `admin-console-dedicated`
+- click `Configure a new mapper`
+- browse to `User grants per restaurant mapper`
 - check the URIs and set the client secret with the value taken from the `Credentials` tab of `restaurants-employees-mapper` client
+
+For the mapper to correctly be configured for each client created with the admin console, update the `egastro.keycloak.client-service.user-grants-mapper-conf.client-secret` property in your BFF launch configuration.

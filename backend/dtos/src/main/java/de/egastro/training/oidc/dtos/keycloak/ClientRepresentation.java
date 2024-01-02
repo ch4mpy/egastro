@@ -19,7 +19,8 @@ public record ClientRepresentation(
 		boolean serviceAccountsEnabled,
 		boolean publicClient,
 		Attributes attributes,
-		Map<String, String> authenticationFlowBindingOverrides) {
+		Map<String, String> authenticationFlowBindingOverrides,
+		List<ProtocolMapperRepresentation> protocolMappers) {
 
 	public ClientRepresentation(
 			String clientId,
@@ -27,7 +28,9 @@ public record ClientRepresentation(
 			List<String> redirectUris,
 			List<String> webOrigins,
 			List<String> postLogoutRedirectUris,
-			String loginTheme) {
+			String loginTheme,
+			String magicLinkFlowId,
+			Map<String, Object> grantsMapperConf) {
 		this(
 				clientId,
 				secret,
@@ -41,7 +44,8 @@ public record ClientRepresentation(
 				false,
 				false,
 				new Attributes(loginTheme, postLogoutRedirectUris),
-				Map.of("browser", "ca22d65c-3e53-4d2f-97db-791ec1a8cbc3"));
+				Map.of("browser", magicLinkFlowId),
+				List.of(new ProtocolMapperRepresentation("User grants per restaurant", "openid-connect", "egastro.de", false, grantsMapperConf)));
 	}
 
 	record Attributes(@JsonProperty("login_theme") String loginTheme, @JsonProperty("post.logout.redirect.uris") String postLogoutRedirectUris) {

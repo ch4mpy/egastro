@@ -169,6 +169,12 @@ egastro:
       - http://127.0.0.1:7080/*
       - http://10.0.2.2:7080/*
       - http://mc-ch4mp:7080/*
+      magic-link-flow-id: change-me
+      user-grants-mapper-conf:
+        client-id: restaurants-employees-mapper
+        client-secret: change-me
+        token-endpoint: ${master-issuer}/protocol/openid-connect/token
+        api-base-uri: ${management-console-api-uri}/users
 
 ---
 spring:

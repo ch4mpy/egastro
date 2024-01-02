@@ -36,7 +36,7 @@ public class RestaurantsEmployeesKeycloakMapper extends AbstractOIDCProtocolMapp
 		property.setLabel("Resturants-employees API base URI");
 		property.setHelpText("Base URI for API exposing relations between users and restaurants");
 		property.setType(ProviderConfigProperty.STRING_TYPE);
-		property.setDefaultValue("https://localhost:7080/direct/v1/users");
+		property.setDefaultValue("https://localhost:7084/users");
 		configProperties.add(property);
 
 		property = new ProviderConfigProperty();
@@ -59,7 +59,7 @@ public class RestaurantsEmployeesKeycloakMapper extends AbstractOIDCProtocolMapp
 		property.setLabel("Token endpoint");
 		property.setHelpText("Token end-point for authorizing proxies mapper");
 		property.setType(ProviderConfigProperty.STRING_TYPE);
-		property.setDefaultValue("https://localhost:8443/realms/master/protocol/openid-connect/token");
+		property.setDefaultValue("https://localhost:7080/auth/realms/master/protocol/openid-connect/token");
 		configProperties.add(property);
 	}
 
@@ -100,7 +100,7 @@ public class RestaurantsEmployeesKeycloakMapper extends AbstractOIDCProtocolMapp
 
 	@Override
 	public String getDisplayType() {
-		return "User employments mapper";
+		return "User grants per restaurant mapper";
 	}
 
 	@Override
@@ -110,7 +110,7 @@ public class RestaurantsEmployeesKeycloakMapper extends AbstractOIDCProtocolMapp
 
 	@Override
 	public String getHelpText() {
-		return "Adds \"manages\" and \"worksAt\" private claims containing lists of restaurants employing the current user";
+		return "Adds \"grantsByRestaurantId\" private claim containing lists of grants for the current user on different restaurants";
 	}
 
 	@Override
@@ -130,9 +130,9 @@ public class RestaurantsEmployeesKeycloakMapper extends AbstractOIDCProtocolMapp
 				mappingModel.getConfig().get(RESTAURANTS_EMPLOYEES_CLIENT_SECRET),
 				mappingModel.getConfig().get(RESTAURANTS_EMPLOYEES_API_BASE_URI));
 		final var realm = Optional.ofNullable(userSession.getRealm()).map(RealmModel::getName).orElse("");
-		final var username = Optional.ofNullable(userSession.getUser()).map(UserModel::getUsername).orElse("");
-		if (StringUtils.hasText(realm) && StringUtils.hasText(username)) {
-			RestaurantsEmployeesClient.getInstance(clientConfig).getUserGrants(realm, username).ifPresent(userGrants -> {
+		final var userId = Optional.ofNullable(userSession.getUser()).map(UserModel::getId).orElse("");
+		if (StringUtils.hasText(realm) && StringUtils.hasText(userId)) {
+			RestaurantsEmployeesClient.getInstance(clientConfig).getUserGrants(realm, userId).ifPresent(userGrants -> {
 				token.getOtherClaims().put("grantsByRestaurantId", userGrants.grantsByRestaurantId());
 				setClaim(token, mappingModel, userSession, keycloakSession, clientSessionCtx);
 			});

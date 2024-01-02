@@ -1,6 +1,7 @@
 package de.egastro.training.oidc;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.MediaType;
@@ -47,7 +48,22 @@ public class KeycloakClientService {
 	 * @return            the client internal ID to use when building URIs
 	 */
 	public Mono<String> createClient(String clientId, String secret, String loginTheme) {
-		final var dto = new ClientRepresentation(clientId, secret, conf.getRedirectUris(), conf.getWebOrigins(), conf.getPostLogoutRedirectUris(), loginTheme);
+		final var dto = new ClientRepresentation(
+				clientId,
+				secret,
+				conf.getRedirectUris(),
+				conf.getWebOrigins(),
+				conf.getPostLogoutRedirectUris(),
+				loginTheme,
+				conf.getMagicLinkFlowId(),
+				// @formatter:off
+				Map.of(
+						"restaurants-employees-client.client-id", conf.getUserGrantsMapperConf().getClientId(),
+						"restaurants-employees-client.token-endpoint-uri",  conf.getUserGrantsMapperConf().getTokenEndpoint(),
+						"restaurants-employees-api.base-uri",  conf.getUserGrantsMapperConf().getApiBaseUri(),
+						"restaurants-employees-client.client-secret",  conf.getUserGrantsMapperConf().getClientSecret())
+				// @formatter:on
+		);
 
 		return client
 				.post()

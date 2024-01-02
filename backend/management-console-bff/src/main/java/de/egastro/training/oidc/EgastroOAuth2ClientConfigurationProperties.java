@@ -26,4 +26,14 @@ public class EgastroOAuth2ClientConfigurationProperties {
 	List<String> postLogoutRedirectUris = List.of("+");
 	String defaultLoginTheme = "";
 	Set<String> scopes = Set.of("openid", "profile", "email", "offline_access");
+	String magicLinkFlowId;
+	UserGrantsMapperConf userGrantsMapperConf = new UserGrantsMapperConf();
+
+	@Data
+	public static class UserGrantsMapperConf {
+		String clientId = "restaurants-employees-mapper";
+		String clientSecret;
+		URI tokenEndpoint = URI.create("https://localhost:7080/realms/master/protocol/openid-connect/token");
+		URI apiBaseUri = URI.create("https://localhost:7084/users");
+	}
 }
